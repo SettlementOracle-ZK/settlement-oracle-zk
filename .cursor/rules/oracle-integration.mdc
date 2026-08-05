@@ -1,0 +1,34 @@
+---
+description: Pyth oracle integration patterns for SettlementOracle ZK
+globs: oracle-connector/**/*
+alwaysApply: false
+---
+
+# Oracle Integration Standards
+
+## Pyth Feed Requirements
+- Always read `price`, `conf`, `expo`, and `publish_time` from the feed account
+- Reject stale data: `publish_time` must be within `MAX_STALENESS_SECONDS` (default: 60s)
+- Reject low confidence: `conf / price` must be below `MAX_CONFIDENCE_RATIO` (default: 0.05)
+
+## Trigger Evaluation
+```typescript
+// ✅ GOOD — full validation before trigger
+function evaluateTrigger(feed: PriceFeed, rule: TriggerRule): TriggerResult {
+  if (isStale(feed.publishTime, MAX_STALENESS_SECONDS)) {
+    return { triggered: false, reason: 'STALE_ORACLE' };
+  }
+  if (feed.conf / feed.price > MAX_CONFIDENCE_RATIO) {
+    return { triggered: false, reason: 'LOW_CONFIDENCE' };
+  }
+  return { triggered: feed.price < rule.threshold, reason: 'EVALUATED' };
+}
+```
+
+## MVP Constraint
+- Single feed only — do not implement multi-oracle aggregation
+- Document the chosen feed ID and network in `oracle-connector/README.md`
+
+## Error Handling
+- Log all rejected oracle reads with timestamp, feed ID, and rejection reason
+- Never trigger payout on oracle read failure — fail closed

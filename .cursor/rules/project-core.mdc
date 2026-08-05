@@ -1,0 +1,34 @@
+---
+description: Core conventions and MVP scope guard for SettlementOracle ZK
+alwaysApply: true
+---
+
+# SettlementOracle ZK — Core Conventions
+
+## Source of Truth
+- PRD: `docs/PRD.md`
+- Architecture: `docs/architecture/mvp-system-overview.md`
+
+## MVP Scope Guard
+Before implementing any feature, verify it is in the MVP IN list in `AGENTS.md`.
+If a request falls in the OUT list, stop and inform the user — do not implement.
+
+## Security
+- Never commit keypairs, `.env` files, or RPC URLs with embedded API keys
+- All payout logic MUST execute on-chain via Anchor programs
+- No off-chain fund transfers under any circumstance
+- Use `solana-keygen` keypairs stored locally, referenced via env vars only
+
+## Git
+- Do NOT commit unless the user explicitly requests it
+- Never force-push to main/master
+
+## Naming
+- Programs: `snake_case` (e.g., `escrow`, `payout`)
+- TypeScript: `camelCase` functions, `PascalCase` types
+- On-chain accounts: descriptive PDAs (e.g., `policy`, `escrow_vault`)
+
+## Testing
+- Every Anchor instruction must have at least one integration test
+- Oracle connector must have unit tests for staleness/confidence edge cases
+- Run `anchor test` before any devnet deploy
