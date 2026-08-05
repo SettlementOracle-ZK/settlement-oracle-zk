@@ -1,0 +1,40 @@
+---
+description: Anchor program conventions for SettlementOracle ZK smart contracts
+globs: programs/**/*.rs
+alwaysApply: false
+---
+
+# Anchor Program Standards
+
+## Structure
+- One program per directory under `programs/` (e.g., `programs/escrow/`, `programs/payout/`)
+- Separate `state/` module for account structs, `instructions/` for handlers
+- Use `#[account]` with explicit `space` calculation — never hardcode sizes
+
+## Security Checklist
+- Validate all signers and account ownership before state mutation
+- Use PDAs with deterministic seeds: `[b"escrow", policy_id.as_ref()]`
+- Check account discriminator on deserialization
+- No `unwrap()` in production code — use `?` with custom `ErrorCode` variants
+- Implement circuit breaker: pause flag on escrow account, settable by authority
+
+## Escrow Pattern
+```rust
+// ✅ GOOD — explicit space, authority check, PDA seeds
+#[account(
+    init,
+    payer = authority,
+    space = 8 + EscrowAccount::INIT_SPACE,
+    seeds = [b"escrow", policy_id.as_ref()],
+    bump
+)]
+pub escrow: Account<'info, EscrowAccount>,
+```
+
+## Error Handling
+- Define errors in `error.rs` using `#[error_code]`
+- Map oracle failures to distinct error codes (e.g., `OracleStale`, `OracleLowConfidence`)
+
+## Dependencies
+- Use `anchor-lang` and `anchor-spl` — do not add unvetted crates
+- Pyth SDK: `pyth-sdk-solana` for on-chain price reads

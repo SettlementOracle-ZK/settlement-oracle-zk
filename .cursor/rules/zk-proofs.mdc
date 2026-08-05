@@ -1,0 +1,36 @@
+---
+description: ZK proof generation and verification conventions
+globs: zk-prover/**/*
+alwaysApply: false
+---
+
+# ZK Proof Standards
+
+## Proof Purpose (MVP)
+Attest that a trigger evaluation was executed correctly:
+- Input: oracle data (price, timestamp, confidence) + business rule parameters
+- Output: boolean trigger result + risk score
+
+## Payload Schema (must match PRD)
+```json
+{
+  "asset_class": "agriculture_climate",
+  "risk_score": 85.4,
+  "scale": "0-100",
+  "model_confidence": "92%",
+  "timestamp": "2026-05-19T14:42:00Z",
+  "zk_proof": {
+    "hash": "0xABC123...",
+    "verification_url": "https://api.riskoracle.com/verify/0xABC..."
+  }
+}
+```
+
+## Verification Split
+- **Off-chain:** Full proof verification via API endpoint (`verification_url`)
+- **On-chain (MVP):** Store proof hash on-chain; full verification deferred to post-MVP
+
+## Constraints
+- Do NOT embed LLMs or large models in the circuit for MVP
+- Circuit must be reproducible: same inputs → same proof hash
+- Document circuit public/private inputs in `zk-prover/CIRCUIT.md`

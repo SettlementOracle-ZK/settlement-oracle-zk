@@ -1,0 +1,25 @@
+---
+description: API Gateway conventions for SettlementOracle ZK
+globs: api/**/*
+alwaysApply: false
+---
+
+# API Gateway Standards
+
+## Response Schema
+All settlement status endpoints must return the PRD payload shape.
+See `zk-proofs.mdc` for the canonical schema.
+
+## Endpoints (MVP)
+- `GET /policies/:id` — policy status and trigger config
+- `GET /settlements/:id` — settlement result with ZK proof
+- `GET /verify/:proofHash` — off-chain ZK proof verification
+
+## RPC Integration
+- Use `@solana/web3.js` Connection with devnet RPC from env var `SOLANA_RPC_URL`
+- Never expose private keys in API — use a server-side keypair via env var
+- Rate-limit RPC calls; cache on-chain account reads where possible
+
+## Database (PostgreSQL)
+- Store policy metadata, settlement history, and proof hashes
+- On-chain state is source of truth for fund balances — DB is index/cache only

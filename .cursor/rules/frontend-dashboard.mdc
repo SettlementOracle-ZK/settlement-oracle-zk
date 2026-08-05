@@ -1,0 +1,24 @@
+---
+description: Frontend dashboard conventions for SettlementOracle ZK
+globs: web/**/*
+alwaysApply: false
+---
+
+# Frontend Dashboard Standards
+
+## Wallet Integration
+- Use `@solana/wallet-adapter-react` with Phantom and Solflare adapters
+- Never store private keys in frontend state or localStorage
+
+## MVP Views
+1. **Active Policies** — list with trigger condition, escrow balance, status
+2. **Settlement Explorer** — transaction hash, ZK proof hash, verification link
+3. **Trigger Monitor** — real-time oracle feed value vs. threshold
+
+## Data Fetching
+- Poll API Gateway for settlement status — do not read RPC directly from browser for MVP
+- Display oracle staleness warnings when feed is older than threshold
+
+## UI Patterns
+- Settlement status badges: `PENDING` | `TRIGGERED` | `PAID` | `FAILED`
+- Link ZK proof hash to `verification_url` for auditor transparency
