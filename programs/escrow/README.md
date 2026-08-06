@@ -4,7 +4,7 @@ Solana Anchor program that holds policy premiums in escrow and executes automate
 
 ## Status
 
-**Scaffold only — not implemented**
+**Anchor workspace initialized** — default template program compiles (`anchor build`). Escrow / payout business logic is not implemented yet (still using Anchor’s sample `initialize` / `increment` instructions).
 
 ## Purpose
 
@@ -25,24 +25,31 @@ Solana Anchor program that holds policy premiums in escrow and executes automate
 ## Target stack
 
 - **Runtime:** Solana
-- **Framework:** Anchor (Rust)
+- **Framework:** Anchor 1.1 (Rust)
 - **Network (MVP):** Devnet / testnet only
 
-## Future layout (when implemented)
+## Layout
+
+Workspace root files: `Anchor.toml`, `Cargo.toml`, `rust-toolchain.toml`.
 
 ```
 programs/escrow/
 ├── Cargo.toml
-├── Xargo.toml          # if needed by Anchor template
+├── README.md
 ├── src/
 │   ├── lib.rs
-│   ├── instructions/
-│   ├── state/
-│   └── errors.rs
+│   ├── constants.rs
+│   ├── error.rs
+│   ├── state.rs
+│   ├── instructions.rs
+│   └── instructions/
+│       ├── initialize.rs
+│       └── increment.rs
 └── tests/
+    └── test_initialize.rs
 ```
 
-Exact structure will follow the Anchor workspace conventions set at the repo root when programs are initialized.
+Build from the repo root with `anchor build`. Tests: `anchor test` (runs `cargo test` per `Anchor.toml`).
 
 ## Non-goals (MVP)
 

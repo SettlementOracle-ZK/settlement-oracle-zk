@@ -3,7 +3,7 @@
 Parametric insurance settlement platform on Solana. When an oracle attests a real-world event (for example, rainfall below a threshold), a smart contract automatically releases escrowed funds. A zero-knowledge (ZK) proof attests that the business rule was executed correctly against the oracle data.
 
 **Target users:** Insurers — actuaries, risk managers, pricing analysts, and auditors  
-**Stage:** MVP (structure scaffold only — packages are not implemented yet)
+**Stage:** MVP — Anchor workspace scaffolded for `programs/escrow`; other packages are docs-only until implemented
 
 ## Architecture
 
@@ -63,13 +63,21 @@ Full component map, trust boundaries, and runtime flow: [`docs/architecture/mvp-
 
 ## Getting started
 
-This repository is a **structure-only monorepo**. Package folders exist with documentation only; toolchains and application code will be added in later phases.
+The monorepo includes an **Anchor 1.1 workspace** at the repo root for [`programs/escrow/`](programs/escrow/). Other packages remain documentation stubs until their implementation phases.
+
+**Prerequisites:** Solana CLI, Anchor CLI (`avm` / `anchor 1.1.x`), Rust toolchain (see [`rust-toolchain.toml`](rust-toolchain.toml)).
+
+```bash
+# From repo root
+anchor build   # compile escrow + generate IDL
+anchor test    # run program tests (cargo test / LiteSVM)
+```
 
 1. Read the product requirements: [`docs/PRD.md`](docs/PRD.md)
 2. Read the MVP architecture: [`docs/architecture/mvp-system-overview.md`](docs/architecture/mvp-system-overview.md)
 3. Read agent and scope conventions: [`AGENTS.md`](AGENTS.md)
 4. Review shared payload contracts: [`shared/README.md`](shared/README.md)
-5. Implement package-by-package following the roadmap in the PRD (Solana env → Anchor escrow → Pyth connector → ZK prover → API → web dashboard)
+5. Continue package-by-package following the roadmap in the PRD (escrow logic → Pyth connector → ZK prover → API → web dashboard)
 
 ## Documentation
 
