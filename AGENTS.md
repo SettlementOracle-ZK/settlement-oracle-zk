@@ -47,6 +47,7 @@ Oracle (Pyth) → Oracle Connector → Trigger Evaluation
 | ZK Proofs       | `zk-prover/`       | `zk-proofs.mdc`             | `zk-proof-generation`      |
 | API             | `api/`             | `api-gateway.mdc`           | —                          |
 | Frontend        | `web/`             | `frontend-dashboard.mdc`    | —                          |
+| Shared contracts| `shared/`          | —                           | —                          |
 | Domain (cross)  | —                  | `project-core.mdc`          | `settlement-oracle-domain` |
 
 ## Stack (locked for MVP)
@@ -56,7 +57,7 @@ Oracle (Pyth) → Oracle Connector → Trigger Evaluation
 | Smart Contracts  | Solana + Anchor (Rust)                  |
 | Oracle           | Pyth Network                            |
 | ZK Infrastructure| Light Protocol or Succinct              |
-| API              | TypeScript + PostgreSQL                 |
+| API              | Rust + PostgreSQL                       |
 | Frontend         | Next.js + Solana Wallet Adapter         |
 | Infra            | AWS (EC2/Lambda), Solana devnet RPC     |
 

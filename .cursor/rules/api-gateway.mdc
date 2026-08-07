@@ -15,8 +15,12 @@ See `zk-proofs.mdc` for the canonical schema.
 - `GET /settlements/:id` — settlement result with ZK proof
 - `GET /verify/:proofHash` — off-chain ZK proof verification
 
+## Stack
+- Implement this service in **Rust** (not Node.js / TypeScript)
+- Prefer a standard HTTP stack (e.g. Axum or Actix Web) + PostgreSQL
+
 ## RPC Integration
-- Use `@solana/web3.js` Connection with devnet RPC from env var `SOLANA_RPC_URL`
+- Use Solana Rust SDK / RPC client crates with devnet RPC from env var `SOLANA_RPC_URL`
 - Never expose private keys in API — use a server-side keypair via env var
 - Rate-limit RPC calls; cache on-chain account reads where possible
 
