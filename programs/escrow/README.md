@@ -4,7 +4,7 @@ Solana Anchor program that holds policy premiums in escrow and executes automate
 
 ## Status
 
-**Anchor workspace initialized** — default template program compiles (`anchor build`). Escrow / payout business logic is not implemented yet (still using Anchor’s sample `initialize` / `increment` instructions).
+**In progress** — `PolicyAccount` / `EscrowAccount` state, domain errors, and `create_policy` are implemented. Escrow deposit, trigger evaluation, and payout are not wired yet.
 
 ## Purpose
 
@@ -43,10 +43,9 @@ programs/escrow/
 │   ├── state.rs
 │   ├── instructions.rs
 │   └── instructions/
-│       ├── initialize.rs
-│       └── increment.rs
+│       └── create_policy.rs
 └── tests/
-    └── test_initialize.rs
+    └── test_create_policy.rs
 ```
 
 Build from the repo root with `anchor build`. Tests: `anchor test` (runs `cargo test` per `Anchor.toml`).
