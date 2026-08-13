@@ -1,0 +1,19 @@
+{
+  "name": "@settlement-oracle/oracle-connector",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@pythnetwork/price-service-client": "^1.9.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
