@@ -1,55 +1,57 @@
 # Oracle Connector
 
-Service module that consumes high-fidelity market oracle feeds (MVP: **Pyth Network** on Solana) and exposes validated data for trigger evaluation.
+Pyth Network feed consumer for SettlementOracle ZK MVP trigger evaluation.
 
-## Status
+## MVP feed (chosen)
 
-**Scaffold only — not implemented**
+| Field | Value |
+|-------|-------|
+| Asset | SOL/USD |
+| Feed ID | `0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d` |
+| Hermes URL | `https://hermes.pyth.network` |
+| Network | Devnet / mainnet (read-only via Hermes) |
 
-## Purpose
+## Validation defaults
 
-- Read Pyth price / climate (or other chosen MVP feed class) accounts on Solana
-- Enforce **staleness** and **confidence** checks before data is treated as trigger-ready
-- Produce structured inputs for the escrow program and ZK prover
+- **Staleness:** reject if `publish_time` older than **60s**
+- **Confidence:** reject if `conf / |price| > 0.05`
 
-## Responsibilities
-
-| Area | Description |
-|------|-------------|
-| Feed client | Fetch and parse Pyth on-chain accounts |
-| Validation | Reject stale, low-confidence, or malformed readings |
-| Trigger inputs | Map feed values to policy thresholds / strike conditions |
-| Integration surface | Stable interface for API / workers that evaluate settlement |
-
-## Target stack
-
-- **Language:** TypeScript (or Rust client if co-located with programs later)
-- **Oracle (MVP):** Pyth Network on Solana
-- **Network (MVP):** Devnet / testnet RPC
-
-## Future layout (when implemented)
+## Layout
 
 ```
 oracle-connector/
-├── package.json          # or Cargo.toml if Rust
 ├── src/
-│   ├── client/
-│   ├── validation/
-│   ├── feeds/
+│   ├── client/pyth.ts       # Pyth Hermes client
+│   ├── constants.ts
+│   ├── evaluateTrigger.ts   # Trigger evaluation (fail closed)
+│   ├── types.ts
+│   ├── validation.ts
 │   └── index.ts
 └── tests/
+    ├── staleness.test.ts
+    ├── confidence.test.ts
+    └── evaluateTrigger.test.ts
 ```
 
-## Non-goals (MVP)
+## Run locally
 
-- Multi-oracle aggregation (Chainlink + Pyth + API3)
-- Dispute / challenge windows before settlement
-- Continuous monitoring and alerting pipeline
-- Writing oracle data on-chain (read path only for MVP)
+```bash
+cd oracle-connector
+npm install
+npm test
+```
+
+## Usage
+
+```typescript
+import { evaluateTrigger, PythHermesClient } from './src/index.js';
+
+const client = new PythHermesClient();
+const feed = await client.getLatestPriceFeed();
+const result = evaluateTrigger(feed, { threshold: 100, operator: 'lt' });
+```
 
 ## Related
 
-- Product requirements: [`../docs/PRD.md`](../docs/PRD.md)
-- Agent conventions: [`../AGENTS.md`](../AGENTS.md)
-- Cursor rule: `oracle-integration` / skill: `pyth-oracle-integration`
-- Downstream: [`../programs/escrow/`](../programs/escrow/), [`../zk-prover/`](../zk-prover/), [`../api/`](../api/)
+- PRD: [`../docs/PRD.md`](../docs/PRD.md)
+- Dev plan Phase 1: [`../docs/plans/mvp-dev-plan.md`](../docs/plans/mvp-dev-plan.md)
