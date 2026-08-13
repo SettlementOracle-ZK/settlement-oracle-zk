@@ -1,7 +1,7 @@
 use {
     anchor_lang::{
         prelude::Pubkey,
-        solana_program::{instruction::Instruction, system_program},
+        solana_program::{clock::Clock, instruction::Instruction, system_program},
         AccountDeserialize, InstructionData, ToAccountMetas,
     },
     escrow::state::{EscrowAccount, EscrowStatus, PolicyAccount},
@@ -238,4 +238,69 @@ fn test_deposit_premium_rejects_zero_amount() {
     let msg = Message::new_with_blockhash(&[deposit_ix], Some(&payer.pubkey()), &blockhash);
     let tx = VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&payer]).unwrap();
     assert!(svm.send_transaction(tx).is_err());
+}
+
+fn send_ix_expect_err(svm: &mut LiteSVM, payer: &Keypair, instruction: Instruction) {
+    let blockhash = svm.latest_blockhash();
+    let msg = Message::new_with_blockhash(&[instruction], Some(&payer.pubkey()), &blockhash);
+    let tx = VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[payer]).unwrap();
+    assert!(svm.send_transaction(tx).is_err());
+}
+
+#[test]
+fn test_initialize_policy_rejects_invalid_expiry() {
+    let (mut svm, payer, program_id) = setup_svm();
+    let mut clock = svm.get_sysvar::<Clock>();
+    clock.unix_timestamp = 1_700_000_000;
+    svm.set_sysvar::<Clock>(&clock);
+
+    let holder = Keypair::new();
+    let (policy, _) = policy_pda(&program_id);
+    send_ix_expect_err(
+        &mut svm,
+        &payer,
+        Instruction::new_with_bytes(
+            program_id,
+            &escrow::instruction::InitializePolicy {
+                policy_id: POLICY_ID,
+                holder: holder.pubkey(),
+                expiry: 1_700_000_000,
+                asset_class: ASSET_CLASS,
+            }
+            .data(),
+            escrow::accounts::InitializePolicy {
+                authority: payer.pubkey(),
+                policy,
+                system_program: system_program::ID,
+            }
+            .to_account_metas(None),
+        ),
+    );
+}
+
+#[test]
+fn test_initialize_policy_rejects_empty_asset_class() {
+    let (mut svm, payer, program_id) = setup_svm();
+    let holder = Keypair::new();
+    let (policy, _) = policy_pda(&program_id);
+    send_ix_expect_err(
+        &mut svm,
+        &payer,
+        Instruction::new_with_bytes(
+            program_id,
+            &escrow::instruction::InitializePolicy {
+                policy_id: POLICY_ID,
+                holder: holder.pubkey(),
+                expiry: POLICY_EXPIRY,
+                asset_class: [0u8; 32],
+            }
+            .data(),
+            escrow::accounts::InitializePolicy {
+                authority: payer.pubkey(),
+                policy,
+                system_program: system_program::ID,
+            }
+            .to_account_metas(None),
+        ),
+    );
 }

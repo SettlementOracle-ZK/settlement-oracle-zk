@@ -63,16 +63,16 @@ Antes de codar, vocês dois fecham:
 
 ### Klisman · Primary oracle + policy (on-chain) | Secondary escrow
 
-| # | Tarefa | Camada |
-|---|--------|--------|
-| 1.5 | **P** `PolicyAccount` struct + `error.rs` compartilhado + testes | `programs/` |
-| 1.6 | **P** Scaffold `oracle-connector/` (TypeScript) | `oracle-connector/` |
-| 1.7 | **P** Integrar Pyth Hermes — ler feed escolhido na Fase 0 | `oracle-connector/` |
-| 1.8 | **P** `evaluateTrigger()` com checks de staleness + confidence | `oracle-connector/` |
-| 1.9 | **S** Revisar PR do Rodrigo (`initialize_escrow`, `deposit_premium`) | `programs/` |
-| 1.10 | **S** Integration test stub: `initialize_escrow` → assert account state | `programs/` |
+| # | Tarefa | Camada | Status |
+|---|--------|--------|--------|
+| 1.5 | **P** `PolicyAccount` struct + `error.rs` compartilhado + testes | `programs/` | Done (#3) |
+| 1.6 | **P** Scaffold `oracle-connector/` (TypeScript) | `oracle-connector/` | Done (#4) |
+| 1.7 | **P** Integrar Pyth Hermes — ler feed escolhido na Fase 0 | `oracle-connector/` | Done (#4) |
+| 1.8 | **P** `evaluateTrigger()` com checks de staleness + confidence | `oracle-connector/` | Done (#4) |
+| 1.9 | **S** Revisar PR do Rodrigo (`initialize_escrow`, `deposit_premium`) | `programs/` | Done (review on `main`) |
+| 1.10 | **S** Integration test stub: `initialize_escrow` → assert account state | `programs/` | Done (`test_phase1.rs`) |
 
-**Checkpoint Fase 1:** escrow + policy accounts existem; oracle lê feed Pyth com validação.
+**Checkpoint Fase 1:** escrow + policy accounts existem; oracle lê feed Pyth com validação. Klisman 1.5–1.10 complete. Next: Fase 2.6 `execute_payout` + `pause`/`unpause`.
 
 ---
 

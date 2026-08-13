@@ -12,8 +12,18 @@ pub enum ErrorCode {
     EscrowNotActive,
     #[msg("Policy has expired")]
     PolicyExpired,
+    #[msg("Expiry must be in the future")]
+    InvalidExpiry,
+    #[msg("Asset class must be non-empty")]
+    InvalidAssetClass,
     #[msg("Oracle data is stale")]
     OracleStale,
     #[msg("Oracle confidence interval is too wide")]
     OracleLowConfidence,
+    #[msg("Escrow is paused")]
+    Paused,
+    #[msg("Trigger condition has not been met")]
+    TriggerNotMet,
+    #[msg("Escrow has already been settled")]
+    AlreadySettled,
 }

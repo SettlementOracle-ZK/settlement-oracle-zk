@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::{constants::*, state::PolicyAccount};
+use crate::{constants::*, error::ErrorCode, state::PolicyAccount};
 
 #[derive(Accounts)]
 #[instruction(policy_id: [u8; 32])]
@@ -28,7 +28,8 @@ pub fn handle_initialize_policy(
     asset_class: [u8; 32],
 ) -> Result<()> {
     let clock = Clock::get()?;
-    require!(expiry > clock.unix_timestamp, crate::error::ErrorCode::PolicyExpired);
+    require!(expiry > clock.unix_timestamp, ErrorCode::InvalidExpiry);
+    require!(asset_class != [0u8; 32], ErrorCode::InvalidAssetClass);
 
     let policy = &mut ctx.accounts.policy;
     policy.policy_id = policy_id;
