@@ -1,78 +1,57 @@
 # API Gateway
 
-Secure HTTP gateway for insurers to query settlement state, risk outputs, and ZK proof metadata.
+Secure HTTP gateway for insurers to query settlement state. On-chain escrow is the source of truth for balances and status; PostgreSQL is an index/cache.
 
 ## Status
 
-**Scaffold only — not implemented**
+Phase 2 scaffold: `GET /health`, `GET /policies/:id` (hex `policy_id`), schema `policies` + `settlements`.
 
-## Purpose
+## Endpoints
 
-- Expose authenticated REST (or similar) endpoints for insurers
-- Aggregate program account state, oracle-backed metrics, and ZK artifacts
-- Return the PRD-defined JSON payload for risk / proof inspection
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/health` | Process + Postgres connectivity |
+| GET | `/policies/:id` | Policy + escrow status from Solana RPC (`:id` = 32-byte hex) |
 
-## Example response shape (PRD)
+`GET /settlements/:id` and `GET /verify/:proofHash` are later phases.
+
+### `GET /policies/:id` response
 
 ```json
 {
+  "policy_id": "<hex>",
+  "holder": "<pubkey>",
+  "expiry": 4102444800,
   "asset_class": "agriculture_climate",
-  "risk_score": 85.4,
-  "scale": "0-100",
-  "model_confidence": "92%",
-  "timestamp": "2026-05-19T14:42:00Z",
-  "zk_proof": {
-    "hash": "0xABC123...",
-    "verification_url": "https://api.riskoracle.com/verify/0xABC..."
-  }
+  "escrow": {
+    "status": "Active",
+    "amount": 500000000,
+    "trigger_threshold": 100000000000,
+    "paused": false,
+    "authority": "<pubkey>"
+  },
+  "pdas": { "policy": "<pubkey>", "escrow": "<pubkey>" }
 }
 ```
 
-## Responsibilities
+404 if the on-chain policy PDA is missing.
 
-| Area | Description |
-|------|-------------|
-| Gateway | Auth, validation, rate limiting (MVP-appropriate level) |
-| Solana RPC | Read program accounts and settlement status |
-| Proof surface | Serve verification URLs / hashes from `zk-prover` |
-| Persistence | Policy and audit records in PostgreSQL |
+## Run locally
 
-## Target stack
-
-- **Language / runtime:** Rust
-- **HTTP framework (examples):** Axum or Actix Web (chosen at implementation time)
-- **Database:** PostgreSQL
-- **Solana client:** Rust Solana SDK / RPC client crates
-- **RPC:** Solana devnet for MVP
-- **Infra (later):** AWS EC2 / Lambda as needed
-
-## Future layout (when implemented)
-
-```
-api/
-├── Cargo.toml
-├── src/
-│   ├── main.rs
-│   ├── routes/
-│   ├── services/
-│   ├── db/
-│   └── error.rs
-└── tests/
+```bash
+# from repo root
+cp .env.example .env
+docker compose up -d postgres
+# Postgres is published on host port 5433 (avoids clashing with a local 5432)
+cargo run --manifest-path api/Cargo.toml
 ```
 
-## Non-goals (MVP)
+This crate is **not** a member of the root Anchor workspace (avoids Solana crate conflicts). Build it with `--manifest-path api/Cargo.toml`.
 
-- Acting as a broker that mutates third-party insurer core systems
-- Multi-chain L2 routers beyond Solana MVP path
-- Continuous monitoring fans-out as a product surface
-- Node.js / TypeScript implementation (this service is Rust)
+Env vars: see [`.env.example`](../.env.example).
 
 ## Related
 
 - Product requirements: [`../docs/PRD.md`](../docs/PRD.md)
 - Architecture: [`../docs/architecture/mvp-system-overview.md`](../docs/architecture/mvp-system-overview.md)
-- Shared contracts: [`../shared/README.md`](../shared/README.md)
-- Agent conventions: [`../AGENTS.md`](../AGENTS.md)
-- Cursor rule: `api-gateway`
-- Upstream: [`../programs/escrow/`](../programs/escrow/), [`../oracle-connector/`](../oracle-connector/), [`../zk-prover/`](../zk-prover/)
-- UI consumer: [`../web/`](../web/)
+- Escrow program: [`../programs/escrow/`](../programs/escrow/)

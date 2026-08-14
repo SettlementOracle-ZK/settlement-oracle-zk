@@ -52,6 +52,7 @@ pub fn handle_initialize_escrow(
     escrow.amount = 0;
     escrow.trigger_threshold = trigger_threshold;
     escrow.status = EscrowStatus::Active;
+    escrow.paused = false;
     escrow.bump = ctx.bumps.escrow;
 
     msg!(
