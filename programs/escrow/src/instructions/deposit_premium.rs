@@ -33,10 +33,7 @@ pub fn handle_deposit_premium(ctx: Context<DepositPremium>, amount: u64) -> Resu
         from: ctx.accounts.authority.to_account_info(),
         to: ctx.accounts.escrow.to_account_info(),
     };
-    let cpi_ctx = CpiContext::new(
-        anchor_lang::system_program::ID,
-        cpi_accounts,
-    );
+    let cpi_ctx = CpiContext::new(anchor_lang::system_program::ID, cpi_accounts);
     anchor_lang::system_program::transfer(cpi_ctx, amount)?;
 
     ctx.accounts.escrow.amount = ctx

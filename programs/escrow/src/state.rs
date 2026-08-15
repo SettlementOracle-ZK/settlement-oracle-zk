@@ -28,5 +28,6 @@ pub struct EscrowAccount {
     pub amount: u64,
     pub trigger_threshold: i64,
     pub status: EscrowStatus,
+    pub paused: bool,
     pub bump: u8,
 }
