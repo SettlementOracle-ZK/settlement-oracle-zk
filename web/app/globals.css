@@ -391,6 +391,19 @@ td {
   text-underline-offset: 3px;
 }
 
+.select-btn {
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--ink);
+  padding: 0.28rem 0.55rem;
+  cursor: pointer;
+}
+
+.select-btn[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--paper);
+}
+
 .proof-detail {
   padding: 1rem;
   display: grid;

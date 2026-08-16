@@ -48,6 +48,7 @@ export interface VerifyPayload {
     hash: string;
     verification_url: string;
   };
+  attested: boolean;
   verified: boolean;
   verification_method: string;
   public_inputs: Record<string, unknown>;

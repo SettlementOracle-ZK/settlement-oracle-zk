@@ -49,7 +49,13 @@ export default function MonitorPage() {
   }, []);
 
   useEffect(() => {
-    void getVerify(DEMO_PROOF_HASH).then(setProof);
+    let active = true;
+    void getVerify(DEMO_PROOF_HASH).then((result) => {
+      if (active) setProof(result);
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
   const wouldTrigger = feed ? compare(feed.price, threshold, operator) : false;

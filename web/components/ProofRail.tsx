@@ -1,6 +1,14 @@
 import { shortHash } from '@/lib/format';
 import type { VerifyPayload } from '@/lib/types';
 
+function statusLabel(proof: VerifyPayload | null): string {
+  if (!proof) return 'Not loaded';
+  if (proof.verification_method === 'fixture') return 'Demo fixture (not a proof)';
+  if (proof.verified) return 'Verified (off-chain)';
+  if (proof.attested) return 'Indexed attestation (circuit verify pending)';
+  return 'Not verified';
+}
+
 export function ProofRail({
   proof,
   fallbackHash,
@@ -23,7 +31,7 @@ export function ProofRail({
         <dt>Proof hash</dt>
         <dd className="mono">{shortHash(hash, 8)}</dd>
         <dt>Status</dt>
-        <dd>{proof?.verified ? 'Verified (off-chain)' : 'Not loaded'}</dd>
+        <dd>{statusLabel(proof)}</dd>
         {proof ? (
           <>
             <dt>Risk score</dt>

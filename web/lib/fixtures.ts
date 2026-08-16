@@ -1,3 +1,4 @@
+import { API_BASE } from './config';
 import type { OracleFeed, PolicyIndex, SettlementIndex, VerifyPayload } from './types';
 
 export const DEMO_PROOF_HASH =
@@ -28,12 +29,12 @@ export const FIXTURE_SETTLEMENTS: SettlementIndex[] = [
   {
     id: '11111111-1111-4111-8111-111111111111',
     policy_id: DEMO_POLICY_ID,
-    status: 'PAID',
-    payout_amount: 500_000_000,
-    tx_signature: '5DemoTxSignature111111111111111111111111111111111111111111111111',
+    status: 'TRIGGERED',
+    payout_amount: null,
+    tx_signature: null,
     proof_hash: DEMO_PROOF_HASH,
-    verification_url: `http://127.0.0.1:3000/verify/${DEMO_PROOF_HASH}`,
-    settled_at: '2026-05-19T14:42:08Z',
+    verification_url: `${API_BASE}/verify/${DEMO_PROOF_HASH}`,
+    settled_at: null,
   },
   {
     id: '22222222-2222-4222-8222-222222222222',
@@ -56,10 +57,11 @@ export const FIXTURE_VERIFY: Record<string, VerifyPayload> = {
     timestamp: '2026-05-19T14:42:00Z',
     zk_proof: {
       hash: DEMO_PROOF_HASH,
-      verification_url: `http://127.0.0.1:3000/verify/${DEMO_PROOF_HASH}`,
+      verification_url: `${API_BASE}/verify/${DEMO_PROOF_HASH}`,
     },
-    verified: true,
-    verification_method: 'stored_attestation',
+    attested: false,
+    verified: false,
+    verification_method: 'fixture',
     public_inputs: {
       triggered: true,
       threshold: 100,

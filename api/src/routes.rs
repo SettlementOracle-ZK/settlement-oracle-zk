@@ -105,6 +105,7 @@ pub struct VerifyResponse {
     pub model_confidence: String,
     pub timestamp: String,
     pub zk_proof: ZkProofView,
+    pub attested: bool,
     pub verified: bool,
     pub verification_method: &'static str,
     pub public_inputs: serde_json::Value,
@@ -310,7 +311,8 @@ async fn get_verify(
             hash: row.proof_hash.clone(),
             verification_url: verification_url(&state.public_base_url, &row.proof_hash),
         },
-        verified: true,
+        attested: true,
+        verified: false,
         verification_method: "stored_attestation",
         public_inputs: row.public_inputs,
     }))

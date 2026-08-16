@@ -48,10 +48,20 @@ pub fn normalize_pyth_price(raw: &str, expo: i32) -> Result<f64, ApiError> {
     let mantissa: f64 = raw
         .parse()
         .map_err(|_| ApiError::Oracle("invalid pyth mantissa".into()))?;
-    Ok(mantissa * 10f64.powi(expo))
+    if !mantissa.is_finite() {
+        return Err(ApiError::Oracle("non-finite pyth mantissa".into()));
+    }
+    let value = mantissa * 10f64.powi(expo);
+    if !value.is_finite() {
+        return Err(ApiError::Oracle("non-finite pyth price".into()));
+    }
+    Ok(value)
 }
 
 pub fn is_stale(publish_time: i64, now_seconds: i64, max_staleness_seconds: i64) -> bool {
+    if publish_time > now_seconds {
+        return true;
+    }
     now_seconds.saturating_sub(publish_time) > max_staleness_seconds
 }
 
@@ -90,11 +100,20 @@ pub fn feed_view(
     }
 }
 
+pub fn normalize_feed_id(id: &str) -> String {
+    let hex = id
+        .strip_prefix("0x")
+        .or_else(|| id.strip_prefix("0X"))
+        .unwrap_or(id);
+    format!("0x{}", hex.to_ascii_lowercase())
+}
+
 pub async fn fetch_latest_feed(
     http: &reqwest::Client,
     hermes_url: &str,
     feed_id: &str,
 ) -> Result<OracleFeedView, ApiError> {
+    let want = normalize_feed_id(feed_id);
     let url = format!(
         "{}/v2/updates/price/latest?ids[]={}",
         hermes_url.trim_end_matches('/'),
@@ -113,19 +132,16 @@ pub async fn fetch_latest_feed(
 
     let parsed = resp
         .parsed
-        .and_then(|mut rows| rows.pop())
-        .ok_or_else(|| ApiError::Oracle("empty hermes payload".into()))?;
+        .unwrap_or_default()
+        .into_iter()
+        .find(|row| normalize_feed_id(&row.id) == want)
+        .ok_or_else(|| ApiError::Oracle("hermes payload missing requested feed".into()))?;
     let price = normalize_pyth_price(&parsed.price.price, parsed.price.expo)?;
     let conf = normalize_pyth_price(&parsed.price.conf, parsed.price.expo)?;
     let now_seconds = Utc::now().timestamp();
-    let id = if parsed.id.starts_with("0x") {
-        parsed.id
-    } else {
-        format!("0x{}", parsed.id)
-    };
 
     Ok(feed_view(
-        id,
+        normalize_feed_id(&parsed.id),
         price,
         conf,
         parsed.price.expo,
@@ -142,6 +158,7 @@ mod tests {
     fn stale_when_older_than_window() {
         assert!(!is_stale(100, 160, 60));
         assert!(is_stale(100, 161, 60));
+        assert!(is_stale(200, 100, 60));
     }
 
     #[test]
@@ -154,5 +171,13 @@ mod tests {
     #[test]
     fn normalize_applies_exponent() {
         assert_eq!(normalize_pyth_price("14250", -2).unwrap(), 142.5);
+    }
+
+    #[test]
+    fn normalize_feed_id_is_canonical() {
+        assert_eq!(
+            normalize_feed_id("EF0D8B6FDA2CEBA41DA15D4095D1DA392A0D2F8ED0C6C7BC0F4CFAC8C280B56D"),
+            normalize_feed_id("0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d")
+        );
     }
 }

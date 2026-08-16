@@ -1,3 +1,4 @@
+import { API_BASE, USE_FIXTURES } from './config';
 import type { OracleFeed, PolicyIndex, SettlementIndex, VerifyPayload } from './types';
 import {
   FIXTURE_ORACLE,
@@ -6,8 +7,7 @@ import {
   FIXTURE_VERIFY,
 } from './fixtures';
 
-export const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') ?? 'http://127.0.0.1:3000';
+export { API_BASE, USE_FIXTURES } from './config';
 
 export class ApiUnavailableError extends Error {
   constructor(message: string) {
@@ -25,14 +25,23 @@ async function fetchJson<T>(path: string): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+function fixtureVerify(proofHash: string): VerifyPayload | null {
+  const payload = FIXTURE_VERIFY[proofHash];
+  if (!payload) return null;
+  return {
+    ...payload,
+    verified: false,
+    attested: false,
+    verification_method: 'fixture',
+  };
+}
+
 export async function getPolicies(): Promise<{ data: PolicyIndex[]; source: 'api' | 'fixture' }> {
   try {
     const data = await fetchJson<PolicyIndex[]>('/policies');
-    if (data.length === 0) {
-      return { data: FIXTURE_POLICIES, source: 'fixture' };
-    }
     return { data, source: 'api' };
   } catch {
+    if (!USE_FIXTURES) return { data: [], source: 'api' };
     return { data: FIXTURE_POLICIES, source: 'fixture' };
   }
 }
@@ -43,11 +52,9 @@ export async function getSettlements(): Promise<{
 }> {
   try {
     const data = await fetchJson<SettlementIndex[]>('/settlements');
-    if (data.length === 0) {
-      return { data: FIXTURE_SETTLEMENTS, source: 'fixture' };
-    }
     return { data, source: 'api' };
   } catch {
+    if (!USE_FIXTURES) return { data: [], source: 'api' };
     return { data: FIXTURE_SETTLEMENTS, source: 'fixture' };
   }
 }
@@ -56,7 +63,8 @@ export async function getVerify(proofHash: string): Promise<VerifyPayload | null
   try {
     return await fetchJson<VerifyPayload>(`/verify/${encodeURIComponent(proofHash)}`);
   } catch {
-    return FIXTURE_VERIFY[proofHash] ?? null;
+    if (!USE_FIXTURES) return null;
+    return fixtureVerify(proofHash);
   }
 }
 
@@ -64,11 +72,15 @@ export function verifyHref(proofHash: string): string {
   return `${API_BASE}/verify/${proofHash}`;
 }
 
-export async function getOracleLatest(): Promise<{ data: OracleFeed; source: 'api' | 'fixture' }> {
+export async function getOracleLatest(): Promise<{
+  data: OracleFeed | null;
+  source: 'api' | 'fixture';
+}> {
   try {
     const data = await fetchJson<OracleFeed>('/oracle/latest');
     return { data, source: 'api' };
   } catch {
+    if (!USE_FIXTURES) return { data: null, source: 'api' };
     return { data: FIXTURE_ORACLE, source: 'fixture' };
   }
 }

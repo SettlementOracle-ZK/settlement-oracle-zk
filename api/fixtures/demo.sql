@@ -1,5 +1,6 @@
--- Local demo rows for the dashboard (Explorer + /verify).
---   psql "$DATABASE_URL" -f api/fixtures/demo.sql
+-- Local demo index rows for the dashboard (Explorer + /verify).
+-- Applied only by `migrate seed` / `make db-seed`, never by schema migrations.
+-- Settlements are TRIGGERED without a payout signature — PAID requires an on-chain tx.
 
 INSERT INTO policies (policy_id, holder, expiry, asset_class, policy_pda, escrow_pda)
 VALUES (
@@ -42,10 +43,10 @@ INSERT INTO settlements (
 ) VALUES (
     '11111111-1111-4111-8111-111111111111',
     decode('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'hex'),
-    'PAID',
-    500000000,
-    '5DemoTxSignature111111111111111111111111111111111111111111111111',
+    'TRIGGERED',
+    NULL,
+    NULL,
     '0xabc123def4567890abc123def4567890abc123def4567890abc123def4567890',
-    '2026-05-19T14:42:08Z'
+    NULL
 )
 ON CONFLICT (id) DO NOTHING;

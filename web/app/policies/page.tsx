@@ -26,7 +26,7 @@ export default async function PoliciesPage() {
       </div>
       <div className="panel table-wrap">
         {data.length === 0 ? (
-          <p className="empty">No policies indexed. Seed demo data or create a policy on-chain.</p>
+          <p className="empty">No policies indexed. Run `make db-seed` or create a policy on-chain.</p>
         ) : (
           <table>
             <thead>

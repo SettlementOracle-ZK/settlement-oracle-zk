@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 rust-version = "1.89.0"
 description = "SettlementOracle ZK API gateway (Rust + PostgreSQL)"
+default-run = "settlement-api"
 
 [workspace]
 
@@ -25,6 +26,7 @@ hex = "0.4"
 base64 = "0.22"
 chrono = { version = "0.4", features = ["serde"] }
 tower-http = { version = "0.6", features = ["trace", "cors"] }
+url = "2"
 
 [dev-dependencies]
 http-body-util = "0.1"

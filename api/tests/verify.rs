@@ -117,7 +117,9 @@ async fn verify_returns_prd_payload() {
         json["zk_proof"]["verification_url"],
         format!("http://127.0.0.1:3000/verify/{hash}")
     );
-    assert_eq!(json["verified"], true);
+    assert_eq!(json["verified"], false);
+    assert_eq!(json["attested"], true);
+    assert_eq!(json["verification_method"], "stored_attestation");
 }
 
 #[tokio::test]

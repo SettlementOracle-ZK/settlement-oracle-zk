@@ -4,13 +4,13 @@ Next.js desk for monitoring parametric policies, settlements, and ZK proof / tra
 
 ## Status
 
-Phase 3: Settlement Explorer, Trigger Monitor, Phantom/Solflare wallet connect. Active Policies is included so the Fase 3 checkpoint can be exercised before Rodrigo 3.4/3.5.
+Phase 3: Settlement Explorer, Trigger Monitor, Phantom/Solflare wallet connect. Active Policies is included so the Phase 3 checkpoint can be exercised before Rodrigo tasks 3.1–3.3.
 
 ## Views
 
 | Route | Task | What you see |
 |-------|------|----------------|
-| `/policies` | checkpoint | Indexed policies (API or demo fixtures) |
+| `/policies` | checkpoint | Indexed policies (API; optional demo seed) |
 | `/explorer` | 3.6 | Tx signature, proof hash, Solana Explorer + `/verify` links |
 | `/monitor` | 3.7 | SOL/USD vs threshold barograph; stale / low-confidence warnings |
 | header wallet | 3.8 | Phantom and Solflare via Wallet Adapter (devnet) |
@@ -22,21 +22,23 @@ The browser **does not** read Solana RPC for policy or settlement state. It poll
 ```bash
 # from repo root
 cp .env.example .env
-docker compose up -d postgres
-psql "$DATABASE_URL" -f api/fixtures/demo.sql   # optional: seed explorer rows
+make db-up
+make db-migrate
+make db-seed
 cargo run --manifest-path api/Cargo.toml
 
-# in another terminal
+# dashboard env (Next.js does not read the repo-root .env)
 cd web
+cp .env.example .env.local
 npm install
 npm run dev
 ```
 
 Open [http://localhost:3001](http://localhost:3001). API is `127.0.0.1:3000`; the dashboard uses port **3001**.
 
-Env: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SOLANA_RPC_URL` (see [`.env.example`](../.env.example)).
+Env (see [`web/.env.example`](.env.example)): `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SOLANA_RPC_URL`, `NEXT_PUBLIC_USE_FIXTURES`.
 
-If the API is down, Explorer / Policies / Monitor fall back to in-app fixtures so the UI is still reviewable.
+With `NEXT_PUBLIC_USE_FIXTURES=false` (default), API failures show empty/error states. Set it to `true` only for layout review; fixtures are labeled as demo data, never as a verified proof.
 
 ## Non-goals (MVP)
 
