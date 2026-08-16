@@ -1,44 +1,42 @@
 # Web Dashboard
 
-Next.js frontend for monitoring parametric policies, settlements, and ZK proof / transaction verification.
+Next.js desk for monitoring parametric policies, settlements, and ZK proof / transaction verification.
 
 ## Status
 
-**Scaffold only — not implemented**
+Phase 3: Settlement Explorer, Trigger Monitor, Phantom/Solflare wallet connect. Active Policies is included so the Fase 3 checkpoint can be exercised before Rodrigo 3.4/3.5.
 
-## Purpose
+## Views
 
-- **Settlement panel:** real-time view of active contracts, monitored events, and settlement status
-- **Transaction & proof explorer:** verify ZK hash and on-chain confirmation for insureds and auditors
-- Connect Solana wallets (e.g. Phantom, Solflare) via Wallet Adapter for signed actions when required
+| Route | Task | What you see |
+|-------|------|----------------|
+| `/policies` | checkpoint | Indexed policies (API or demo fixtures) |
+| `/explorer` | 3.6 | Tx signature, proof hash, Solana Explorer + `/verify` links |
+| `/monitor` | 3.7 | SOL/USD vs threshold barograph; stale / low-confidence warnings |
+| header wallet | 3.8 | Phantom and Solflare via Wallet Adapter (devnet) |
 
-## Responsibilities
+The browser **does not** read Solana RPC for policy or settlement state. It polls the API gateway. Wallet RPC is used only for adapter connection.
 
-| Area | Description |
-|------|-------------|
-| Dashboard | List/filter policies and settlement statuses |
-| Explorer | Display tx signatures, proof hashes, verification links |
-| Wallet | Wallet Adapter integration for user-facing Solana actions |
-| API client | Consume [`api/`](../api/) endpoints for risk and proof payloads |
+## Run locally
 
-## Target stack
+```bash
+# from repo root
+cp .env.example .env
+docker compose up -d postgres
+psql "$DATABASE_URL" -f api/fixtures/demo.sql   # optional: seed explorer rows
+cargo run --manifest-path api/Cargo.toml
 
-- **Framework:** React / Next.js
-- **Wallets:** Solana Wallet Adapter (Phantom, Solflare, etc.)
-- **Network (MVP):** Solana devnet
-
-## Future layout (when implemented)
-
+# in another terminal
+cd web
+npm install
+npm run dev
 ```
-web/
-├── package.json
-├── app/ or pages/
-├── components/
-├── lib/
-│   ├── api/
-│   └── solana/
-└── public/
-```
+
+Open [http://localhost:3001](http://localhost:3001). API is `127.0.0.1:3000`; the dashboard uses port **3001**.
+
+Env: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SOLANA_RPC_URL` (see [`.env.example`](../.env.example)).
+
+If the API is down, Explorer / Policies / Monitor fall back to in-app fixtures so the UI is still reviewable.
 
 ## Non-goals (MVP)
 
@@ -49,8 +47,6 @@ web/
 
 ## Related
 
-- Product requirements: [`../docs/PRD.md`](../docs/PRD.md) (Design/UX section)
-- Agent conventions: [`../AGENTS.md`](../AGENTS.md)
+- Product requirements: [`../docs/PRD.md`](../docs/PRD.md)
+- API: [`../api/`](../api/)
 - Cursor rule: `frontend-dashboard`
-- Backend: [`../api/`](../api/)
-- On-chain: [`../programs/escrow/`](../programs/escrow/)

@@ -9,10 +9,16 @@ use serde::Serialize;
 pub enum ApiError {
     #[error("invalid policy id; expected 32-byte hex")]
     InvalidPolicyId,
+    #[error("invalid proof hash; expected even-length hex")]
+    InvalidProofHash,
     #[error("policy not found on-chain")]
     PolicyNotFound,
+    #[error("proof not found")]
+    ProofNotFound,
     #[error("failed to deserialize on-chain account")]
     AccountDecode,
+    #[error("oracle unavailable: {0}")]
+    Oracle(String),
     #[error("database error")]
     Database(#[from] sqlx::Error),
     #[error("migration error")]
@@ -31,11 +37,11 @@ struct ErrorBody {
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         let status = match &self {
-            ApiError::InvalidPolicyId => StatusCode::BAD_REQUEST,
-            ApiError::PolicyNotFound => StatusCode::NOT_FOUND,
+            ApiError::InvalidPolicyId | ApiError::InvalidProofHash => StatusCode::BAD_REQUEST,
+            ApiError::PolicyNotFound | ApiError::ProofNotFound => StatusCode::NOT_FOUND,
             ApiError::AccountDecode => StatusCode::BAD_GATEWAY,
             ApiError::Database(_) | ApiError::Migration(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            ApiError::Rpc(_) => StatusCode::BAD_GATEWAY,
+            ApiError::Rpc(_) | ApiError::Oracle(_) => StatusCode::BAD_GATEWAY,
             ApiError::Config(_) => StatusCode::INTERNAL_SERVER_ERROR,
         };
         (

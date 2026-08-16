@@ -40,6 +40,19 @@ zk-prover/
 └── tests/
 ```
 
+## Review checklist for circuit PR (task 3.9)
+
+Blocked until Rodrigo opens the 3.1–3.3 PR. When it lands, review against:
+
+- [ ] `CIRCUIT.md` documents public vs private inputs (oracle price, confidence, publish_time, threshold → `triggered`, `risk_score`)
+- [ ] Same inputs always produce the same proof hash (deterministic)
+- [ ] Payload matches PRD: `asset_class`, `risk_score`, `scale`, `model_confidence`, `timestamp`, `zk_proof.hash`, `zk_proof.verification_url`
+- [ ] No LLM / large model inside the circuit
+- [ ] Proof hash can be stored in `proofs.proof_hash` and served by `GET /verify/:proofHash`
+- [ ] Unit test: identical witness → identical hash
+
+Klisman 3.10 ships `/verify` as a stored-attestation lookup so the dashboard is unblocked. Swap `verification_method` to circuit-native verify without changing the PRD JSON shape.
+
 ## Non-goals (MVP)
 
 - Large models (LLMs) inside the ZK circuit
