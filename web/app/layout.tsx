@@ -1,17 +1,17 @@
 import type { Metadata } from 'next';
-import { Figtree, Fraunces, IBM_Plex_Mono } from 'next/font/google';
+import { IBM_Plex_Mono, Outfit, Syne } from 'next/font/google';
 
 import { Providers } from '@/components/Providers';
 
 import './globals.css';
 
-const display = Fraunces({
+const display = Syne({
   subsets: ['latin'],
   variable: '--font-display',
   display: 'swap',
 });
 
-const body = Figtree({
+const body = Outfit({
   subsets: ['latin'],
   variable: '--font-body',
   display: 'swap',
@@ -25,8 +25,8 @@ const mono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Settlement blotter · SettlementOracle ZK',
-  description: 'Monitor parametric policies, settlements, and ZK proof hashes.',
+  title: 'SettlementOracle ZK',
+  description: 'On-chain parametric settlement — escrow vaults, Pyth triggers, ZK attestation.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

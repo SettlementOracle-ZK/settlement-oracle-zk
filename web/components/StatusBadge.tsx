@@ -10,5 +10,9 @@ const LABELS: Record<SettlementStatus, string> = {
 
 export function StatusBadge({ status }: { status: string }) {
   const normalized = normalizeStatus(status);
-  return <span className={`badge badge-${normalized.toLowerCase()}`}>{LABELS[normalized]}</span>;
+  return (
+    <span className={`badge badge-${normalized.toLowerCase()}`} data-status={normalized}>
+      {LABELS[normalized]}
+    </span>
+  );
 }

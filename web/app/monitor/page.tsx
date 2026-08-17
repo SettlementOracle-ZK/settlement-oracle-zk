@@ -24,6 +24,10 @@ function compare(price: number, threshold: number, operator: 'lt' | 'lte' | 'gt'
   }
 }
 
+function clampPct(value: number) {
+  return Math.min(100, Math.max(0, value));
+}
+
 export default function MonitorPage() {
   const [feed, setFeed] = useState<OracleFeed | null>(null);
   const [source, setSource] = useState<'api' | 'fixture'>('fixture');
@@ -61,8 +65,9 @@ export default function MonitorPage() {
   const wouldTrigger = feed ? compare(feed.price, threshold, operator) : false;
   const min = feed ? Math.min(feed.price, threshold) * 0.7 : 0;
   const max = feed ? Math.max(feed.price, threshold) * 1.15 : 1;
-  const pricePct = feed ? ((feed.price - min) / (max - min)) * 100 : 0;
-  const thresholdPct = ((threshold - min) / (max - min)) * 100;
+  const span = max - min || 1;
+  const pricePct = feed ? clampPct(((feed.price - min) / span) * 100) : 0;
+  const thresholdPct = clampPct(((threshold - min) / span) * 100);
 
   const warning = useMemo(() => {
     if (!feed) return null;
@@ -91,10 +96,11 @@ export default function MonitorPage() {
     <AppShell rail={<ProofRail proof={proof} fallbackHash={DEMO_PROOF_HASH} />}>
       <div className="page-head">
         <div>
+          <p className="kicker">Pyth SOL/USD</p>
           <h1>Trigger monitor</h1>
           <p className="lede">
-            Live SOL/USD against the policy threshold. Stale or low-confidence prints warn in
-            amber; the settlement engine stays fail-closed.
+            Spot versus strike. This desk does not submit payouts — stale or low-confidence prints
+            stay fail-closed.
           </p>
         </div>
         <p className="source-note">{source === 'api' ? 'Pyth via API' : 'Demo fixture'}</p>
@@ -103,7 +109,7 @@ export default function MonitorPage() {
       <div className="panel">
         <div className="controls">
           <label>
-            Threshold (USD)
+            Strike (USD)
             <input
               type="number"
               value={threshold}
@@ -116,35 +122,36 @@ export default function MonitorPage() {
               value={operator}
               onChange={(event) => setOperator(event.target.value as typeof operator)}
             >
-              <option value="lt">price &lt; threshold</option>
-              <option value="lte">price ≤ threshold</option>
-              <option value="gt">price &gt; threshold</option>
-              <option value="gte">price ≥ threshold</option>
+              <option value="lt">price &lt; strike</option>
+              <option value="lte">price ≤ strike</option>
+              <option value="gt">price &gt; strike</option>
+              <option value="gte">price ≥ strike</option>
             </select>
           </label>
         </div>
 
         {feed ? (
-          <div className="barograph">
-            <div className="barograph-scale" aria-hidden="true">
-              <div className="barograph-fill" style={{ height: `${Math.max(pricePct, 4)}%` }} />
-              <div className="barograph-threshold" style={{ bottom: `${thresholdPct}%` }} />
-            </div>
-            <div className="barograph-copy">
+          <div className="strike-board">
+            <div className="strike-meta">
               <div>
                 <p className="source-note">{feed.symbol}</p>
-                <p className="metric">{formatUsd(feed.price)}</p>
+                <p className={`metric ${feed.stale ? '' : 'metric-live'}`}>{formatUsd(feed.price)}</p>
                 <p className="lede">
                   Confidence ±{formatUsd(feed.conf)} · age {feed.age_seconds}s
                 </p>
               </div>
-              <div>
-                <p>
-                  Strike {formatUsd(threshold)} · {operator.toUpperCase()} ·{' '}
-                  {wouldTrigger ? 'would trigger' : 'inside band'}
-                </p>
-                <p className="source-note">This view does not submit on-chain payouts.</p>
-              </div>
+              <span className="fire-chip" data-hot={wouldTrigger}>
+                {wouldTrigger ? 'Would trigger' : 'Inside band'}
+              </span>
+            </div>
+            <div className="strike-track" aria-hidden="true">
+              <div className="strike-fill" style={{ width: `${Math.max(pricePct, 3)}%` }} />
+              <div className="strike-mark" style={{ left: `${thresholdPct}%` }} />
+              <div className="strike-spot" style={{ left: `${pricePct}%` }} />
+            </div>
+            <div className="strike-legend">
+              <span>Spot {formatUsd(feed.price)}</span>
+              <span>Strike {formatUsd(threshold)}</span>
             </div>
           </div>
         ) : (

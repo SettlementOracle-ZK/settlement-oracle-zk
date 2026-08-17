@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { Nav } from './Nav';
+import { OracleTicker } from './OracleTicker';
 
 const WalletButton = dynamic(
   () => import('./WalletButton').then((mod) => mod.WalletButton),
@@ -15,12 +16,15 @@ export function AppShell({ children, rail }: { children: ReactNode; rail?: React
   return (
     <div className="shell">
       <header className="topbar">
-        <Link className="brand" href="/policies">
-          <em>Settlement blotter</em>
-          <span>Oracle ZK · desk</span>
+        <Link className="brand" href="/">
+          <strong>
+            Settlement<span>Oracle</span>
+          </strong>
+          <em>ZK · on-chain vault</em>
         </Link>
         <Nav />
         <div className="wallet-slot">
+          <OracleTicker />
           <span className="network-chip">devnet</span>
           <WalletButton />
         </div>

@@ -17,14 +17,15 @@ export function ProofRail({
   fallbackHash?: string | null;
 }) {
   const hash = proof?.zk_proof.hash ?? fallbackHash ?? '— awaiting attestation —';
-  const chunks = hash.replace(/^0x/, '').match(/.{1,8}/g) ?? [hash];
+  const body = hash.replace(/^0x/, '');
+  const chunks = body.match(/.{1,4}/g) ?? [hash];
 
   return (
-    <aside className="rail" aria-label="Attestation rail">
-      <h2>Attestation</h2>
+    <aside className="rail" aria-label="ZK attestation">
+      <h2>ZK attestation</h2>
       <div className="seal" aria-hidden="true">
-        {chunks.map((chunk) => (
-          <div key={chunk}>{chunk}</div>
+        {chunks.slice(0, 16).map((chunk, index) => (
+          <span key={`${chunk}-${index}`}>{chunk}</span>
         ))}
       </div>
       <dl>
