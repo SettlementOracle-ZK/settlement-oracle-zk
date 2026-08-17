@@ -22,9 +22,12 @@ custom-panic = []
 
 [dependencies]
 anchor-lang = "1.1.2"
+bytemuck = { version = "1.24.0", features = ["derive"] }
 
 [dev-dependencies]
+bytemuck = "1.24.0"
 litesvm = "0.10.0"
+solana-account = "3.4.0"
 solana-message = "3.0.1"
 solana-transaction = "3.0.2"
 solana-signer = "3.0.0"

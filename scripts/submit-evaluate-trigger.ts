@@ -85,6 +85,14 @@ function loadKeypair(): Keypair {
   return Keypair.fromSecretKey(Uint8Array.from(secret));
 }
 
+/** SOL/USD legacy price account on devnet (override via PYTH_PRICE_FEED). */
+function loadPriceFeedPubkey(): PublicKey {
+  const raw =
+    process.env.PYTH_PRICE_FEED ??
+    "7UVimffxr9ow1uUEXgjbcAUtqTYNzRbD3D9sWpLjGjSR";
+  return new PublicKey(raw);
+}
+
 function findInstruction(idl: EscrowIdl, name: string) {
   return idl.instructions.find((ix) => ix.name === name);
 }
@@ -139,6 +147,7 @@ async function main(): Promise<void> {
     authority: payer.publicKey,
     escrow: escrowPda,
     policy: policyPda,
+    priceFeed: loadPriceFeedPubkey(),
   });
 
   if (!send) {

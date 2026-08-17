@@ -1221,7 +1221,9 @@ name = "escrow"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",
+ "bytemuck",
  "litesvm",
+ "solana-account",
  "solana-keypair",
  "solana-message",
  "solana-signer",

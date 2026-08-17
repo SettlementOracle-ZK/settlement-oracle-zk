@@ -82,8 +82,8 @@ Antes de codar, vocês dois fecham:
 
 | # | Tarefa | Camada | Status |
 |---|--------|--------|--------|
-| 2.1 | **P** Instruction `evaluate_trigger` (CPI Pyth on-chain ou flag off-chain) | `programs/` | Open |
-| 2.2 | **P** Testes on-chain: trigger happy path + oracle stale → sem payout | `programs/` | Open |
+| 2.1 | **P** Instruction `evaluate_trigger` (CPI Pyth on-chain ou flag off-chain) | `programs/` | Done |
+| 2.2 | **P** Testes on-chain: trigger happy path + oracle stale → sem payout | `programs/` | Done |
 | 2.3 | **S** Revisar PR payout do Klisman (`execute_payout`, `pause`) | `programs/` | Open |
 | 2.4 | **S** Scaffold `api/` (rust + PostgreSQL) | `api/` | Done (Klisman; unblocked 2.8/2.9) |
 | 2.5 | **S** Endpoint `GET /health` + conexão DB | `api/` | Done (Klisman; unblocked 2.8/2.9) |
@@ -96,10 +96,10 @@ Antes de codar, vocês dois fecham:
 | 2.7 | **P** Testes on-chain: payout happy path + pause bloqueia payout | `programs/` | Done |
 | 2.8 | **P** Schema DB: `policies`, `settlements` | `api/` | Done |
 | 2.9 | **P** `GET /policies/:id` + integração RPC Solana (ler escrow) | `api/` | Done |
-| 2.10 | **S** Revisar PR `evaluate_trigger` do Rodrigo | `programs/` | Blocked (no 2.1 PR; checklist in `programs/escrow/README.md`) |
+| 2.10 | **S** Revisar PR `evaluate_trigger` do Rodrigo | `programs/` | Ready (checklist in `programs/escrow/README.md`) |
 | 2.11 | **S** Script que submete tx `evaluate_trigger` via `@solana/web3.js` | `scripts/` | Done (exits until 2.1 lands in IDL) |
 
-**Checkpoint Fase 2:** trigger + payout on-chain testados; API expõe status do escrow. Klisman 2.6–2.9 + 2.11 complete. Full checkpoint waits on Rodrigo 2.1/2.2 (`evaluate_trigger`).
+**Checkpoint Fase 2:** trigger + payout on-chain testados; API expõe status do escrow. Rodrigo 2.1/2.2 + Klisman 2.6–2.9 + 2.11 complete.
 
 ---
 

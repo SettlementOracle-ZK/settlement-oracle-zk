@@ -11,7 +11,7 @@ Anchor program for SettlementOracle ZK MVP — policy registration, escrow vault
 | `deposit_premium` | Rodrigo | Transfer lamports into escrow vault |
 | `pause` / `unpause` | Klisman | Authority-only circuit breaker (`escrow.paused`) |
 | `execute_payout` | Klisman | Permissionless crank: transfer premium to holder when `status == Triggered` and not paused |
-| `evaluate_trigger` | Rodrigo (2.1) | **Not implemented yet.** Must set `escrow.status = Triggered` when the oracle condition is met; fail closed on stale / low-confidence / paused |
+| `evaluate_trigger` | Rodrigo (2.1) | Read Pyth price feed on-chain; set `escrow.status = Triggered` when price < threshold; fail closed on stale / low-confidence / paused |
 
 ## Accounts
 
@@ -28,24 +28,13 @@ Anchor program for SettlementOracle ZK MVP — policy registration, escrow vault
 ## Interface contract for `evaluate_trigger` (Rodrigo 2.1)
 
 - Instruction name: `evaluate_trigger`
-- Accounts: `authority`, `escrow` (mut PDA), `policy` (PDA); Pyth accounts TBD
+- Accounts: `authority` (signer / fee payer), `escrow` (mut PDA), `policy` (PDA), `price_feed` (Pyth legacy price account)
 - On success when the condition is met: `escrow.status = Triggered`
-- Fail closed: `OracleStale` / `OracleLowConfidence` / `Paused`
+- Trigger rule: aggregate `price < escrow.trigger_threshold` (same raw i64 units as Pyth)
+- Fail closed: `OracleStale` / `OracleLowConfidence` / `Paused` / `TriggerNotMet`
 - Must **not** transfer funds — payout stays in `execute_payout`
 
-Until 2.1 lands, integration tests patch LiteSVM account data to `Triggered`.
-
-## Review checklist for `evaluate_trigger` (task 2.10)
-
-Blocked until Rodrigo opens the 2.1/2.2 PR. When it lands:
-
-- [ ] Sets `Triggered` only after staleness + confidence checks
-- [ ] Does not transfer funds (payout stays in `execute_payout`)
-- [ ] Respects `paused` (`ErrorCode::Paused`)
-- [ ] Tests: happy path + stale oracle → no trigger
-- [ ] Run `anchor test` locally before approve
-
-Client: [`scripts/submit-evaluate-trigger.ts`](../../scripts/submit-evaluate-trigger.ts) (`npm run evaluate-trigger --prefix scripts -- --policy-id <hex>`).
+Client: [`scripts/submit-evaluate-trigger.ts`](../../scripts/submit-evaluate-trigger.ts) (`npm run evaluate-trigger --prefix scripts -- --policy-id <hex>`). Pass `PYTH_PRICE_FEED` (Solana account pubkey) for the SOL/USD feed.
 
 ## Test
 
