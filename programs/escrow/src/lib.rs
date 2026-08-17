@@ -1,6 +1,8 @@
 pub mod constants;
 pub mod error;
 pub mod instructions;
+pub mod oracle;
+pub mod pyth_legacy;
 pub mod state;
 
 use anchor_lang::prelude::*;
@@ -53,5 +55,9 @@ pub mod escrow {
 
     pub fn execute_payout(ctx: Context<ExecutePayout>) -> Result<()> {
         instructions::execute_payout::handle_execute_payout(ctx)
+    }
+
+    pub fn evaluate_trigger(ctx: Context<EvaluateTrigger>) -> Result<()> {
+        instructions::evaluate_trigger::handle_evaluate_trigger(ctx)
     }
 }
