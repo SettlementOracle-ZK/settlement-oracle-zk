@@ -3,10 +3,11 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import { AppShell } from '@/components/AppShell';
+import { HashChip } from '@/components/HashChip';
 import { ProofRail } from '@/components/ProofRail';
 import { StatusBadge } from '@/components/StatusBadge';
 import { getSettlements, getVerify, verifyHref } from '@/lib/api';
-import { explorerTxUrl, formatLamports, formatWhen, shortHash } from '@/lib/format';
+import { explorerTxUrl, formatLamports, formatWhen } from '@/lib/format';
 import type { SettlementIndex, VerifyPayload } from '@/lib/types';
 
 export default function ExplorerPage() {
@@ -49,10 +50,11 @@ export default function ExplorerPage() {
     <AppShell rail={<ProofRail proof={proof} fallbackHash={selected?.proof_hash} />}>
       <div className="page-head">
         <div>
+          <p className="kicker">Tx · proof · payout</p>
           <h1>Settlement explorer</h1>
           <p className="lede">
-            Transaction signatures, proof hashes, and the off-chain verify link auditors use to
-            confirm the trigger rule ran as agreed.
+            Signatures, ZK hashes, and the off-chain verify URL. Select a row to load the
+            attestation rail.
           </p>
         </div>
         <p className="source-note">{source === 'api' ? 'API index' : 'Demo fixtures'}</p>
@@ -78,12 +80,7 @@ export default function ExplorerPage() {
               {rows.map((row) => {
                 const selectedRow = row.id === selectedId;
                 return (
-                  <tr
-                    key={row.id}
-                    style={{
-                      background: selectedRow ? '#eef4f2' : undefined,
-                    }}
-                  >
+                  <tr key={row.id} className={selectedRow ? 'row-selected' : undefined}>
                     <td>
                       <button
                         type="button"
@@ -91,23 +88,31 @@ export default function ExplorerPage() {
                         aria-pressed={selectedRow}
                         onClick={() => setSelectedId(row.id)}
                       >
-                        {selectedRow ? 'Selected' : 'Select'}
+                        {selectedRow ? 'Loaded' : 'Load'}
                       </button>
                     </td>
                     <td>
                       <StatusBadge status={row.status} />
                     </td>
-                    <td className="hash">
+                    <td>
                       {row.tx_signature ? (
-                        <a href={explorerTxUrl(row.tx_signature)} target="_blank" rel="noreferrer">
-                          {shortHash(row.tx_signature, 5)}
-                        </a>
+                        <span className="cell-split">
+                          <HashChip value={row.tx_signature} size={5} />
+                          <a
+                            className="link-btn"
+                            href={explorerTxUrl(row.tx_signature)}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Explorer
+                          </a>
+                        </span>
                       ) : (
                         '—'
                       )}
                     </td>
-                    <td className="hash">{row.proof_hash ? shortHash(row.proof_hash) : '—'}</td>
-                    <td>{formatLamports(row.payout_amount)}</td>
+                    <td>{row.proof_hash ? <HashChip value={row.proof_hash} /> : '—'}</td>
+                    <td className="mono">{formatLamports(row.payout_amount)}</td>
                     <td>{formatWhen(row.settled_at)}</td>
                     <td>
                       {row.proof_hash ? (
