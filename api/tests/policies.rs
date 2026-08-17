@@ -86,11 +86,13 @@ fn fixture_escrow_account(authority: Pubkey) -> Vec<u8> {
 
 async fn try_pool() -> Option<sqlx::PgPool> {
     let database_url = std::env::var("DATABASE_URL").ok()?;
-    PgPoolOptions::new()
+    let pool = PgPoolOptions::new()
         .max_connections(1)
         .connect(&database_url)
         .await
-        .ok()
+        .ok()?;
+    sqlx::migrate!("./migrations").run(&pool).await.ok()?;
+    Some(pool)
 }
 
 #[tokio::test]
@@ -111,11 +113,11 @@ async fn get_policies_reads_mocked_on_chain_accounts() {
     accounts.insert(policy_addr, fixture_policy_account(holder));
     accounts.insert(escrow_addr, fixture_escrow_account(authority));
 
-    let app = router(AppState {
+    let app = router(AppState::for_test(
         pool,
-        rpc: Arc::new(MockRpc { accounts }) as Arc<dyn AccountSource>,
+        Arc::new(MockRpc { accounts }) as Arc<dyn AccountSource>,
         program_id,
-    });
+    ));
 
     let response = app
         .oneshot(
@@ -142,13 +144,13 @@ async fn get_policies_404_when_missing_on_chain() {
         return;
     };
 
-    let app = router(AppState {
+    let app = router(AppState::for_test(
         pool,
-        rpc: Arc::new(MockRpc {
+        Arc::new(MockRpc {
             accounts: HashMap::new(),
         }) as Arc<dyn AccountSource>,
-        program_id: escrow::ID,
-    });
+        escrow::ID,
+    ));
 
     let response = app
         .oneshot(
@@ -169,13 +171,13 @@ async fn health_ok_when_db_up() {
         return;
     };
 
-    let app = router(AppState {
+    let app = router(AppState::for_test(
         pool,
-        rpc: Arc::new(MockRpc {
+        Arc::new(MockRpc {
             accounts: HashMap::new(),
         }) as Arc<dyn AccountSource>,
-        program_id: escrow::ID,
-    });
+        escrow::ID,
+    ));
 
     let response = app
         .oneshot(

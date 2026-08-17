@@ -107,25 +107,25 @@ Antes de codar, vocês dois fecham:
 
 ### Rodrigo · Primary ZK | Secondary frontend
 
-| # | Tarefa | Camada |
-|---|--------|--------|
-| 3.1 | **P** Scaffold `zk-prover/` + definir circuit I/O em `CIRCUIT.md` | `zk-prover/` |
-| 3.2 | **P** Circuit básico: oracle data + threshold → `triggered` + `risk_score` | `zk-prover/` |
-| 3.3 | **P** Gerar proof hash + payload no formato do PRD | `zk-prover/` |
-| 3.4 | **S** Scaffold Next.js + Solana Wallet Adapter | `web/` |
-| 3.5 | **S** View **Active Policies** (lista mockada → API real) | `web/` |
+| # | Tarefa | Camada | Status |
+|---|--------|--------|--------|
+| 3.1 | **P** Scaffold `zk-prover/` + definir circuit I/O em `CIRCUIT.md` | `zk-prover/` | Open |
+| 3.2 | **P** Circuit básico: oracle data + threshold → `triggered` + `risk_score` | `zk-prover/` | Open |
+| 3.3 | **P** Gerar proof hash + payload no formato do PRD | `zk-prover/` | Open |
+| 3.4 | **S** Scaffold Next.js + Solana Wallet Adapter | `web/` | Done (Klisman; unblocked 3.6–3.8) |
+| 3.5 | **S** View **Active Policies** (lista mockada → API real) | `web/` | Done (Klisman; unblocked checkpoint) |
 
 ### Klisman · Primary frontend | Secondary ZK
 
-| # | Tarefa | Camada |
-|---|--------|--------|
-| 3.6 | **P** View **Settlement Explorer** (tx hash, proof hash, link verify) | `web/` |
-| 3.7 | **P** View **Trigger Monitor** (feed value vs threshold, warning staleness) | `web/` |
-| 3.8 | **P** Conectar wallet Phantom/Solflare | `web/` |
-| 3.9 | **S** Revisar PR circuit do Rodrigo | `zk-prover/` |
-| 3.10 | **S** Endpoint `GET /verify/:proofHash` na API | `api/` + `zk-prover/` |
+| # | Tarefa | Camada | Status |
+|---|--------|--------|--------|
+| 3.6 | **P** View **Settlement Explorer** (tx hash, proof hash, link verify) | `web/` | Done |
+| 3.7 | **P** View **Trigger Monitor** (feed value vs threshold, warning staleness) | `web/` | Done |
+| 3.8 | **P** Conectar wallet Phantom/Solflare | `web/` | Done |
+| 3.9 | **S** Revisar PR circuit do Rodrigo | `zk-prover/` | Blocked (no 3.1 PR; checklist in `zk-prover/README.md`) |
+| 3.10 | **S** Endpoint `GET /verify/:proofHash` na API | `api/` + `zk-prover/` | Done (stored attestation; circuit verify waits on 3.1–3.3) |
 
-**Checkpoint Fase 3:** dashboard mostra policies + proof explorer; API verifica hash ZK.
+**Checkpoint Fase 3:** dashboard mostra policies + proof explorer; API verifica hash ZK. Klisman 3.6–3.8 + 3.10 complete. Full checkpoint waits on Rodrigo 3.1–3.3 (circuit) and 3.9 review.
 
 ---
 
