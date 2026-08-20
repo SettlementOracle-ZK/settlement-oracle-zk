@@ -117,4 +117,26 @@ mod tests {
             "0x29ab3e25fe7d7b15a9645a6bff7a0518848a050d0344368101578512fefde53b"
         );
     }
+
+    #[test]
+    fn hash_matches_js_float_artifact() {
+        let witness_json = serde_json::json!({
+            "asset_class": "agriculture_climate",
+            "feed_id": "0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d",
+            "operator": "lt",
+            "oracle_conf": 0.046930690000000004,
+            "oracle_price": 86.67944457,
+            "publish_time": 1787238102,
+            "risk_score": 87,
+            "threshold": 100,
+            "triggered": true
+        });
+        let witness = witness_from_public_inputs(&witness_json).expect("parse witness");
+        let json = canonical_witness_json(&witness);
+        assert!(json.contains("0.046930690000000004"), "json: {json}");
+        assert_eq!(
+            hash_witness(&witness),
+            "0xb5cd76ddda26d7044fec24b6cff89bbbe9186f497a5cb2e3abcc181a792253b7"
+        );
+    }
 }

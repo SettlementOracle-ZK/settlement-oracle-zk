@@ -163,6 +163,22 @@ async fn settlement_detail_returns_prd_payload() {
     assert_eq!(json["zk_proof"]["hash"], hash);
     assert_eq!(json["verification_method"], "circuit_commitment");
     assert_eq!(json["verified"], true);
+
+    sqlx::query("DELETE FROM settlements WHERE id = $1::uuid")
+        .bind(settlement_id)
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query("DELETE FROM proofs WHERE proof_hash = $1")
+        .bind(&hash)
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query("DELETE FROM policies WHERE policy_id = $1")
+        .bind(policy_id.as_slice())
+        .execute(&pool)
+        .await
+        .unwrap();
 }
 
 #[tokio::test]
@@ -217,7 +233,7 @@ async fn register_proof_dev_endpoint() {
     assert_eq!(response.status(), axum::http::StatusCode::OK);
 
     let parsed = parse_proof_hash(&hash).unwrap();
-    let verify = app(pool)
+    let verify = app(pool.clone())
         .oneshot(
             axum::http::Request::builder()
                 .uri(format!("/verify/{parsed}"))
@@ -231,4 +247,10 @@ async fn register_proof_dev_endpoint() {
     let json: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
     assert_eq!(json["verified"], true);
     assert_eq!(json["verification_method"], "circuit_commitment");
+
+    sqlx::query("DELETE FROM proofs WHERE proof_hash = $1")
+        .bind(&hash)
+        .execute(&pool)
+        .await
+        .unwrap();
 }

@@ -14,6 +14,12 @@ export function shortHash(value: string, size = 6): string {
   return `${value.slice(0, value.startsWith('0x') ? size + 2 : size)}…${body.slice(-size)}`;
 }
 
+export function isLikelySolanaSignature(value: string): boolean {
+  const sig = value.trim();
+  // Real Solana tx signatures are base58 and typically 87–88 chars.
+  return sig.length >= 80 && sig.length <= 128 && /^[1-9A-HJ-NP-Za-km-z]+$/.test(sig);
+}
+
 export function explorerTxUrl(signature: string): string {
   return `https://explorer.solana.com/tx/${signature}?cluster=devnet`;
 }

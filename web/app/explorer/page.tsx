@@ -7,7 +7,7 @@ import { HashChip } from '@/components/HashChip';
 import { ProofRail } from '@/components/ProofRail';
 import { StatusBadge } from '@/components/StatusBadge';
 import { getSettlements, getVerify, verifyHref } from '@/lib/api';
-import { explorerTxUrl, formatLamports, formatWhen } from '@/lib/format';
+import { explorerTxUrl, formatLamports, formatWhen, isLikelySolanaSignature } from '@/lib/format';
 import type { SettlementIndex, VerifyPayload } from '@/lib/types';
 
 export default function ExplorerPage() {
@@ -79,6 +79,10 @@ export default function ExplorerPage() {
             <tbody>
               {rows.map((row) => {
                 const selectedRow = row.id === selectedId;
+                const txLink =
+                  row.tx_signature && isLikelySolanaSignature(row.tx_signature)
+                    ? explorerTxUrl(row.tx_signature)
+                    : null;
                 return (
                   <tr key={row.id} className={selectedRow ? 'row-selected' : undefined}>
                     <td>
@@ -98,14 +102,20 @@ export default function ExplorerPage() {
                       {row.tx_signature ? (
                         <span className="cell-split">
                           <HashChip value={row.tx_signature} size={5} />
-                          <a
-                            className="link-btn"
-                            href={explorerTxUrl(row.tx_signature)}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Explorer
-                          </a>
+                          {txLink ? (
+                            <a
+                              className="link-btn"
+                              href={txLink}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              Explorer
+                            </a>
+                          ) : (
+                            <span className="source-note" title="Not a real on-chain signature">
+                              Indexed only
+                            </span>
+                          )}
                         </span>
                       ) : (
                         '—'
