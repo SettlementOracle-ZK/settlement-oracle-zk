@@ -4,9 +4,7 @@ Secure HTTP gateway for insurers to query settlement state. On-chain escrow is t
 
 ## Status
 
-Phase 3: `GET /health`, `GET /policies/:id`, `GET /policies`, `GET /settlements`, `GET /verify/:proofHash`, `GET /oracle/latest`.
-
-`GET /settlements/:id` with the full PRD payload remains Phase 4 (task 4.8).
+Phase 4: `GET /settlements/:id` (full PRD payload), dev-only `POST /proofs` and `POST /settlements/register` for E2E indexing.
 
 ## Endpoints
 
@@ -16,8 +14,11 @@ Phase 3: `GET /health`, `GET /policies/:id`, `GET /policies`, `GET /settlements`
 | GET | `/policies` | Indexed policy list (DB cache; local demo rows via `make db-seed`) |
 | GET | `/policies/:id` | Policy + escrow status from Solana RPC (`:id` = 32-byte hex) |
 | GET | `/settlements` | Indexed settlements (tx signature, proof hash, verify URL) |
-| GET | `/verify/:proofHash` | Off-chain ZK attestation lookup (PRD payload) |
+| GET | `/settlements/:id` | Settlement + full PRD payload (joins `proofs`) |
+| GET | `/verify/:proofHash` | ZK attestation; `circuit_commitment` when witness matches hash |
 | GET | `/oracle/latest` | Pyth Hermes SOL/USD tick + staleness / confidence flags |
+| POST | `/proofs` | **Dev only** — register proof witness + PRD fields |
+| POST | `/settlements/register` | **Dev only** — index settlement (+ optional policy upsert) |
 
 404 if the on-chain policy PDA is missing (`GET /policies/:id`) or the proof hash is unknown (`GET /verify/:proofHash`).
 
@@ -36,12 +37,12 @@ Phase 3: `GET /health`, `GET /policies/:id`, `GET /policies`, `GET /settlements`
   },
   "verified": false,
   "attested": true,
-  "verification_method": "stored_attestation",
+  "verification_method": "stored_attestation | circuit_commitment",
   "public_inputs": { "triggered": true }
 }
 ```
 
-MVP verification is an **indexed attestation**: `attested` means the hash is stored; `verified` stays false until circuit-native verify lands with Rodrigo 3.1–3.3.
+MVP verification: **stored attestation** plus optional **circuit_commitment** when `public_inputs` recomputes to `proof_hash`.
 
 ## Run locally
 

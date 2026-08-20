@@ -14,6 +14,7 @@ pub struct Config {
     pub hermes_url: String,
     pub pyth_feed_id: String,
     pub cors_origins: Vec<String>,
+    pub app_env: String,
 }
 
 impl Config {
@@ -41,6 +42,7 @@ impl Config {
             pyth_feed_id: std::env::var("PYTH_FEED_ID")
                 .unwrap_or_else(|_| DEFAULT_PYTH_FEED_ID.into()),
             cors_origins,
+            app_env: std::env::var("APP_ENV").unwrap_or_else(|_| "development".into()),
         })
     }
 }

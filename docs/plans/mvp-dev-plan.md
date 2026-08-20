@@ -84,7 +84,7 @@ Antes de codar, vocês dois fecham:
 |---|--------|--------|--------|
 | 2.1 | **P** Instruction `evaluate_trigger` (CPI Pyth on-chain ou flag off-chain) | `programs/` | Done |
 | 2.2 | **P** Testes on-chain: trigger happy path + oracle stale → sem payout | `programs/` | Done |
-| 2.3 | **S** Revisar PR payout do Klisman (`execute_payout`, `pause`) | `programs/` | Open |
+| 2.3 | **S** Revisar PR payout do Klisman (`execute_payout`, `pause`) | `programs/` | Done (merged) |
 | 2.4 | **S** Scaffold `api/` (rust + PostgreSQL) | `api/` | Done (Klisman; unblocked 2.8/2.9) |
 | 2.5 | **S** Endpoint `GET /health` + conexão DB | `api/` | Done (Klisman; unblocked 2.8/2.9) |
 
@@ -109,9 +109,9 @@ Antes de codar, vocês dois fecham:
 
 | # | Tarefa | Camada | Status |
 |---|--------|--------|--------|
-| 3.1 | **P** Scaffold `zk-prover/` + definir circuit I/O em `CIRCUIT.md` | `zk-prover/` | Open |
-| 3.2 | **P** Circuit básico: oracle data + threshold → `triggered` + `risk_score` | `zk-prover/` | Open |
-| 3.3 | **P** Gerar proof hash + payload no formato do PRD | `zk-prover/` | Open |
+| 3.1 | **P** Scaffold `zk-prover/` + definir circuit I/O em `CIRCUIT.md` | `zk-prover/` | Done |
+| 3.2 | **P** Circuit básico: oracle data + threshold → `triggered` + `risk_score` | `zk-prover/` | Done |
+| 3.3 | **P** Gerar proof hash + payload no formato do PRD | `zk-prover/` | Done |
 | 3.4 | **S** Scaffold Next.js + Solana Wallet Adapter | `web/` | Done (Klisman; unblocked 3.6–3.8) |
 | 3.5 | **S** View **Active Policies** (lista mockada → API real) | `web/` | Done (Klisman; unblocked checkpoint) |
 
@@ -122,10 +122,10 @@ Antes de codar, vocês dois fecham:
 | 3.6 | **P** View **Settlement Explorer** (tx hash, proof hash, link verify) | `web/` | Done |
 | 3.7 | **P** View **Trigger Monitor** (feed value vs threshold, warning staleness) | `web/` | Done |
 | 3.8 | **P** Conectar wallet Phantom/Solflare | `web/` | Done |
-| 3.9 | **S** Revisar PR circuit do Rodrigo | `zk-prover/` | Blocked (no 3.1 PR; checklist in `zk-prover/README.md`) |
+| 3.9 | **S** Revisar PR circuit do Rodrigo | `zk-prover/` | Ready (checklist in `zk-prover/README.md`) |
 | 3.10 | **S** Endpoint `GET /verify/:proofHash` na API | `api/` + `zk-prover/` | Done (stored attestation; circuit verify waits on 3.1–3.3) |
 
-**Checkpoint Fase 3:** dashboard mostra policies + proof explorer; API verifica hash ZK. Klisman 3.6–3.8 + 3.10 complete. Full checkpoint waits on Rodrigo 3.1–3.3 (circuit) and 3.9 review.
+**Checkpoint Fase 3:** dashboard mostra policies + proof explorer; API verifica hash ZK. Rodrigo 3.1–3.3 + Klisman 3.6–3.8 + 3.10 complete.
 
 ---
 
@@ -133,39 +133,39 @@ Antes de codar, vocês dois fecham:
 
 ### Rodrigo · Primary deploy (build + tx) | Secondary frontend
 
-| # | Tarefa | Camada |
-|---|--------|--------|
-| 4.1 | **P** `anchor build` + deploy devnet (`anchor deploy`) | `programs/` |
-| 4.2 | **P** Smoke on-chain (parte 1): `initialize_escrow` → `deposit_premium` | `programs/` |
-| 4.3 | **P** Documentar program ID em `docs/architecture/mvp-system-overview.md` | `docs/` |
-| 4.4 | **S** Ajustar dashboard para devnet (program ID, RPC) | `web/` |
-| 4.5 | **S** Badge de status: `PENDING` / `TRIGGERED` / `PAID` / `FAILED` | `web/` |
+| # | Tarefa | Camada | Status |
+|---|--------|--------|--------|
+| 4.1 | **P** `anchor build` + deploy devnet (`anchor deploy`) | `programs/` | Documented ([`devnet-smoke.md`](../runbooks/devnet-smoke.md)) |
+| 4.2 | **P** Smoke on-chain (parte 1): `initialize_escrow` → `deposit_premium` | `programs/` | Documented |
+| 4.3 | **P** Documentar program ID em `docs/architecture/mvp-system-overview.md` | `docs/` | Done |
+| 4.4 | **S** Ajustar dashboard para devnet (program ID, RPC) | `web/` | Done |
+| 4.5 | **S** Badge de status: `PENDING` / `TRIGGERED` / `PAID` / `FAILED` | `web/` | Done |
 
 ### Klisman · Primary smoke on-chain + integração | Secondary deploy verify
 
-| # | Tarefa | Camada |
-|---|--------|--------|
-| 4.6 | **P** Smoke on-chain (parte 2): `evaluate_trigger` → `execute_payout` | `programs/` + `oracle-connector/` |
-| 4.7 | **P** Verificar deploy (second pair of eyes): `solana program show` | `programs/` |
-| 4.8 | **P** Endpoint `GET /settlements/:id` com payload PRD completo | `api/` |
-| 4.9 | **P** Conectar oracle-connector → prover → API → on-chain (fluxo completo) | off-chain |
-| 4.10 | **P** README com instruções "run locally" | root |
-| 4.11 | **S** Testar fluxo E2E no dashboard | `web/` |
+| # | Tarefa | Camada | Status |
+|---|--------|--------|--------|
+| 4.6 | **P** Smoke on-chain (parte 2): `evaluate_trigger` → `execute_payout` | `programs/` + `oracle-connector/` | Documented |
+| 4.7 | **P** Verificar deploy (second pair of eyes): `solana program show` | `programs/` | Documented |
+| 4.8 | **P** Endpoint `GET /settlements/:id` com payload PRD completo | `api/` | Done |
+| 4.9 | **P** Conectar oracle-connector → prover → API → on-chain (fluxo completo) | off-chain | Done (`scripts/run-settlement-flow.ts`) |
+| 4.10 | **P** README com instruções "run locally" | root | Done |
+| 4.11 | **S** Testar fluxo E2E no dashboard | `web/` | Manual (runbook) |
 
-**Checkpoint Fase 4:** demo E2E na devnet; ambos executaram txs on-chain nos smoke tests.
+**Checkpoint Fase 4:** demo E2E documentada; deploy devnet requer execução manual com wallet funded.
 
 ---
 
 ## Fase 5 — Demo + hardening (Semana 5) · **J**
 
-| # | Tarefa | Quem |
-|---|--------|------|
-| 5.1 | **J** Teste E2E gravado (screen recording do fluxo completo) | ambos |
-| 5.2 | **J** Revisão de segurança on-chain (PDAs, signers, no unwrap) | ambos |
-| 5.3 | **J** Checklist MVP vs PRD — o que entrou, o que ficou fora | ambos |
-| 5.4 | **J** Preparar demo para stakeholders | ambos |
-| 5.5 | **J** Fix bugs on-chain | `programs/` |
-| 5.6 | Klisman **P** / Rodrigo **S** — fix bugs off-chain + UI | `api/` + `web/` |
+| # | Tarefa | Quem | Status |
+|---|--------|------|--------|
+| 5.1 | **J** Teste E2E gravado (screen recording do fluxo completo) | ambos | Manual |
+| 5.2 | **J** Revisão de segurança on-chain (PDAs, signers, no unwrap) | ambos | Checklist ([`on-chain-security-review.md`](../checklists/on-chain-security-review.md)) |
+| 5.3 | **J** Checklist MVP vs PRD — o que entrou, o que ficou fora | ambos | Done ([`mvp-prd-checklist.md`](../checklists/mvp-prd-checklist.md)) |
+| 5.4 | **J** Preparar demo para stakeholders | ambos | Manual |
+| 5.5 | **J** Fix bugs on-chain | `programs/` | As needed |
+| 5.6 | Klisman **P** / Rodrigo **S** — fix bugs off-chain + UI | `api/` + `web/` | As needed |
 
 ---
 

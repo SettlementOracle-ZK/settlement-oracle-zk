@@ -15,6 +15,12 @@ pub enum ApiError {
     PolicyNotFound,
     #[error("proof not found")]
     ProofNotFound,
+    #[error("settlement not found")]
+    SettlementNotFound,
+    #[error("invalid proof witness")]
+    ProofInvalid,
+    #[error("endpoint disabled outside development")]
+    DevOnly,
     #[error("failed to deserialize on-chain account")]
     AccountDecode,
     #[error("oracle unavailable: {0}")]
@@ -37,8 +43,13 @@ struct ErrorBody {
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         let status = match &self {
-            ApiError::InvalidPolicyId | ApiError::InvalidProofHash => StatusCode::BAD_REQUEST,
-            ApiError::PolicyNotFound | ApiError::ProofNotFound => StatusCode::NOT_FOUND,
+            ApiError::PolicyNotFound | ApiError::ProofNotFound | ApiError::SettlementNotFound => {
+                StatusCode::NOT_FOUND
+            }
+            ApiError::InvalidPolicyId | ApiError::InvalidProofHash | ApiError::ProofInvalid => {
+                StatusCode::BAD_REQUEST
+            }
+            ApiError::DevOnly => StatusCode::FORBIDDEN,
             ApiError::AccountDecode => StatusCode::BAD_GATEWAY,
             ApiError::Database(_) | ApiError::Migration(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ApiError::Rpc(_) | ApiError::Oracle(_) => StatusCode::BAD_GATEWAY,
