@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "evaluate-trigger": "tsx submit-evaluate-trigger.ts"
+    "evaluate-trigger": "tsx submit-evaluate-trigger.ts",
+    "devnet-smoke": "tsx devnet-smoke.ts",
+    "settlement-flow": "tsx run-settlement-flow.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.1",

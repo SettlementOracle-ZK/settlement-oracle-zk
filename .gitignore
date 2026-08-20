@@ -3,6 +3,7 @@
 target
 **/*.rs.bk
 node_modules
+scripts/.local
 test-ledger
 .yarn
 .surfpool

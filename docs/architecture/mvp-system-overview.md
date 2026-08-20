@@ -128,11 +128,22 @@ MVP API surface (see cursor rule `api-gateway`):
 
 **Out:** multi-oracle aggregation, dispute/challenge windows, LLMs in circuits, mainnet, continuous monitoring product, direct writes into third-party insurer cores.
 
+## Deployed program (devnet)
+
+| Field | Value |
+|-------|--------|
+| Program | `escrow` |
+| Program ID | `987M3ZdtXNuZu7jfA1TtTHNgYThNHEYyGVP5sq42j1Rd` |
+| Cluster | Solana devnet (MVP) |
+| Pyth SOL/USD (legacy) | `7UVimffxr9ow1uXYxsr4LHAcV58mLzhmwaeKvJ1pjLiE` |
+
+Configure via `ESCROW_PROGRAM_ID`, `PYTH_PRICE_FEED`, `SOLANA_RPC_URL` in [`.env.example`](../../.env.example).
+
 ## Open decisions (document when resolved)
 
-1. **Feed class for MVP** — climate vs price (pick one before implementing `oracle-connector`).
-2. **ZK stack** — Light Protocol vs Succinct for Solana-aligned MVP.
-3. **HTTP framework** for `api` — e.g. Axum vs Actix Web.
+1. ~~**Feed class for MVP**~~ — **price feed** (SOL/USD) chosen; climate swap is post-MVP.
+2. **ZK stack** — MVP uses SHA-256 commitment; Light Protocol vs Succinct for production SNARK.
+3. ~~**HTTP framework** for `api`~~ — **Axum** (in use).
 4. **Shared package distribution** — JSON Schema / OpenAPI only first, then Rust crate and TS types generated from the same source.
 
 ## Related documents

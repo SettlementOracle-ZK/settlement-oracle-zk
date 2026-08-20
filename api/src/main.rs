@@ -30,7 +30,7 @@ async fn main() -> anyhow::Result<()> {
 
     let cors = CorsLayer::new()
         .allow_origin(AllowOrigin::list(origins))
-        .allow_methods([Method::GET])
+        .allow_methods([Method::GET, Method::POST])
         .allow_headers(tower_http::cors::Any);
 
     let state = AppState {
@@ -41,6 +41,7 @@ async fn main() -> anyhow::Result<()> {
         hermes_url: config.hermes_url.clone(),
         pyth_feed_id: config.pyth_feed_id.clone(),
         http: reqwest::Client::new(),
+        app_env: config.app_env.clone(),
     };
 
     let listener = tokio::net::TcpListener::bind(&config.bind_addr)

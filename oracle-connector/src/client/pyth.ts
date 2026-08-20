@@ -1,8 +1,8 @@
 import { PriceServiceConnection } from '@pythnetwork/price-service-client';
 
-import { DEFAULT_HERMES_URL, DEFAULT_PYTH_FEED_ID } from './constants.js';
-import type { PythFeedSnapshot, PriceFeed } from './types.js';
-import { normalizePythPrice } from './validation.js';
+import { DEFAULT_HERMES_URL, DEFAULT_PYTH_FEED_ID } from '../constants.js';
+import type { PythFeedSnapshot, PriceFeed } from '../types.js';
+import { normalizePythPrice } from '../validation.js';
 
 export function mapHermesFeedToPriceFeed(snapshot: PythFeedSnapshot): PriceFeed {
   const price = normalizePythPrice(snapshot.price.price, snapshot.price.expo);

@@ -721,6 +721,7 @@ name = "escrow"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",
+ "bytemuck",
 ]
 
 [[package]]
@@ -1982,8 +1983,10 @@ dependencies = [
  "hex",
  "http-body-util",
  "reqwest",
+ "ryu",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
  "sqlx",
  "thiserror 2.0.20",
  "tokio",

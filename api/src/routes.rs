@@ -3,17 +3,18 @@ use std::sync::Arc;
 use anchor_lang::prelude::Pubkey;
 use axum::{
     extract::{Path, State},
-    routing::get,
+    routing::{get, post},
     Json, Router,
 };
 use chrono::{DateTime, SecondsFormat, Utc};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use tower_http::trace::TraceLayer;
 
 use crate::config::{DEFAULT_HERMES_URL, DEFAULT_PYTH_FEED_ID};
 use crate::error::ApiError;
 use crate::oracle::{fetch_latest_feed, OracleFeedView};
+use crate::proof::{hash_witness, verify_stored_hash, witness_from_public_inputs};
 use crate::rpc::{
     bytes32_to_string, decode_escrow, decode_policy, escrow_pda, policy_pda, status_label,
     AccountSource,
@@ -28,6 +29,7 @@ pub struct AppState {
     pub hermes_url: String,
     pub pyth_feed_id: String,
     pub http: reqwest::Client,
+    pub app_env: String,
 }
 
 impl AppState {
@@ -40,7 +42,12 @@ impl AppState {
             hermes_url: DEFAULT_HERMES_URL.into(),
             pyth_feed_id: DEFAULT_PYTH_FEED_ID.into(),
             http: reqwest::Client::new(),
+            app_env: "development".into(),
         }
+    }
+
+    fn is_development(&self) -> bool {
+        self.app_env.eq_ignore_ascii_case("development")
     }
 }
 
@@ -98,6 +105,57 @@ pub struct SettlementIndexRow {
 }
 
 #[derive(Serialize)]
+pub struct SettlementDetailResponse {
+    pub id: String,
+    pub policy_id: String,
+    pub status: String,
+    pub payout_amount: Option<i64>,
+    pub tx_signature: Option<String>,
+    pub settled_at: Option<String>,
+    pub asset_class: String,
+    pub risk_score: f64,
+    pub scale: String,
+    pub model_confidence: String,
+    pub timestamp: String,
+    pub zk_proof: ZkProofView,
+    pub verified: bool,
+    pub attested: bool,
+    pub verification_method: &'static str,
+    pub public_inputs: serde_json::Value,
+}
+
+#[derive(Deserialize)]
+pub struct RegisterProofRequest {
+    pub proof_hash: String,
+    pub asset_class: String,
+    pub risk_score: f64,
+    pub scale: Option<String>,
+    pub model_confidence: String,
+    pub timestamp: String,
+    pub public_inputs: serde_json::Value,
+}
+
+#[derive(Deserialize)]
+pub struct RegisterSettlementRequest {
+    pub policy_id: String,
+    pub status: String,
+    pub proof_hash: Option<String>,
+    pub payout_amount: Option<i64>,
+    pub tx_signature: Option<String>,
+    pub holder: Option<String>,
+    pub asset_class: Option<String>,
+    pub policy_pda: Option<String>,
+    pub escrow_pda: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct RegisterProofResponse {
+    pub proof_hash: String,
+    pub verification_url: String,
+    pub verified: bool,
+}
+
+#[derive(Serialize)]
 pub struct VerifyResponse {
     pub asset_class: String,
     pub risk_score: f64,
@@ -123,6 +181,9 @@ pub fn router(state: AppState) -> Router {
         .route("/policies", get(list_policies))
         .route("/policies/{id}", get(get_policy))
         .route("/settlements", get(list_settlements))
+        .route("/settlements/{id}", get(get_settlement))
+        .route("/proofs", post(register_proof))
+        .route("/settlements/register", post(register_settlement))
         .route("/verify/{proof_hash}", get(get_verify))
         .route("/oracle/latest", get(get_oracle_latest))
         .layer(TraceLayer::new_for_http())
@@ -165,6 +226,39 @@ fn rfc3339(ts: DateTime<Utc>) -> String {
 
 fn verification_url(base: &str, hash: &str) -> String {
     format!("{}/verify/{hash}", base.trim_end_matches('/'))
+}
+
+fn proof_verification(row: &ProofDb) -> (bool, &'static str) {
+    if let Ok(witness) = witness_from_public_inputs(&row.public_inputs) {
+        let verified = verify_stored_hash(&witness, &row.proof_hash);
+        if verified {
+            return (true, "circuit_commitment");
+        }
+        let computed = hash_witness(&witness);
+        if computed == row.proof_hash.to_ascii_lowercase() {
+            return (true, "circuit_commitment");
+        }
+    }
+    (false, "stored_attestation")
+}
+
+fn verify_response_from_proof(row: ProofDb, base_url: &str) -> VerifyResponse {
+    let (verified, method) = proof_verification(&row);
+    VerifyResponse {
+        asset_class: row.asset_class,
+        risk_score: row.risk_score,
+        scale: row.scale,
+        model_confidence: row.model_confidence,
+        timestamp: rfc3339(row.proof_timestamp),
+        zk_proof: ZkProofView {
+            hash: row.proof_hash.clone(),
+            verification_url: verification_url(base_url, &row.proof_hash),
+        },
+        attested: true,
+        verified,
+        verification_method: method,
+        public_inputs: row.public_inputs,
+    }
 }
 
 async fn get_policy(
@@ -283,6 +377,204 @@ async fn list_settlements(
     ))
 }
 
+async fn get_settlement(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> Result<Json<SettlementDetailResponse>, ApiError> {
+    let row = sqlx::query_as::<_, SettlementDetailDb>(
+        r#"
+        SELECT s.id::text AS id,
+               encode(s.policy_id, 'hex') AS policy_id,
+               s.status,
+               s.payout_amount,
+               s.tx_signature,
+               s.proof_hash,
+               s.settled_at,
+               p.asset_class,
+               p.risk_score,
+               p.scale,
+               p.model_confidence,
+               p.proof_timestamp,
+               p.public_inputs
+        FROM settlements s
+        LEFT JOIN proofs p ON p.proof_hash = s.proof_hash
+        WHERE s.id::text = $1
+        "#,
+    )
+    .bind(&id)
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or(ApiError::SettlementNotFound)?;
+
+    let proof_hash = row
+        .proof_hash
+        .clone()
+        .unwrap_or_else(|| "0x0".into());
+    let (verified, method) = if let Some(ref inputs) = row.public_inputs {
+        if let Ok(witness) = witness_from_public_inputs(inputs) {
+            let v = verify_stored_hash(&witness, &proof_hash);
+            (v, if v { "circuit_commitment" } else { "stored_attestation" })
+        } else {
+            (false, "stored_attestation")
+        }
+    } else {
+        (false, "stored_attestation")
+    };
+
+    Ok(Json(SettlementDetailResponse {
+        id: row.id,
+        policy_id: row.policy_id,
+        status: row.status,
+        payout_amount: row.payout_amount,
+        tx_signature: row.tx_signature,
+        settled_at: row.settled_at.map(rfc3339),
+        asset_class: row.asset_class.unwrap_or_else(|| "unknown".into()),
+        risk_score: row.risk_score.unwrap_or(0.0),
+        scale: row.scale.unwrap_or_else(|| "0-100".into()),
+        model_confidence: row.model_confidence.unwrap_or_else(|| "0%".into()),
+        timestamp: row
+            .proof_timestamp
+            .map(rfc3339)
+            .unwrap_or_else(|| Utc::now().to_rfc3339_opts(SecondsFormat::Secs, true)),
+        zk_proof: ZkProofView {
+            hash: proof_hash.clone(),
+            verification_url: verification_url(&state.public_base_url, &proof_hash),
+        },
+        verified,
+        attested: row.public_inputs.is_some(),
+        verification_method: method,
+        public_inputs: row.public_inputs.unwrap_or(serde_json::json!({})),
+    }))
+}
+
+async fn register_proof(
+    State(state): State<AppState>,
+    Json(body): Json<RegisterProofRequest>,
+) -> Result<Json<RegisterProofResponse>, ApiError> {
+    if !state.is_development() {
+        return Err(ApiError::DevOnly);
+    }
+
+    let hash = parse_proof_hash(&body.proof_hash)?;
+    let witness = witness_from_public_inputs(&body.public_inputs)?;
+    let computed = hash_witness(&witness);
+    if computed != hash {
+        return Err(ApiError::ProofInvalid);
+    }
+
+    let ts = chrono::DateTime::parse_from_rfc3339(&body.timestamp)
+        .map_err(|_| ApiError::ProofInvalid)?
+        .with_timezone(&Utc);
+
+    sqlx::query(
+        r#"
+        INSERT INTO proofs (
+            proof_hash, asset_class, risk_score, scale, model_confidence,
+            proof_timestamp, public_inputs
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+        ON CONFLICT (proof_hash) DO UPDATE SET
+            asset_class = EXCLUDED.asset_class,
+            risk_score = EXCLUDED.risk_score,
+            scale = EXCLUDED.scale,
+            model_confidence = EXCLUDED.model_confidence,
+            proof_timestamp = EXCLUDED.proof_timestamp,
+            public_inputs = EXCLUDED.public_inputs
+        "#,
+    )
+    .bind(&hash)
+    .bind(&body.asset_class)
+    .bind(body.risk_score)
+    .bind(body.scale.unwrap_or_else(|| "0-100".into()))
+    .bind(&body.model_confidence)
+    .bind(ts)
+    .bind(&body.public_inputs)
+    .execute(&state.pool)
+    .await?;
+
+    Ok(Json(RegisterProofResponse {
+        proof_hash: hash.clone(),
+        verification_url: verification_url(&state.public_base_url, &hash),
+        verified: true,
+    }))
+}
+
+async fn register_settlement(
+    State(state): State<AppState>,
+    Json(body): Json<RegisterSettlementRequest>,
+) -> Result<Json<SettlementIndexRow>, ApiError> {
+    if !state.is_development() {
+        return Err(ApiError::DevOnly);
+    }
+
+    let policy_id = parse_policy_id(&body.policy_id)?;
+    if let Some(ref hash) = body.proof_hash {
+        parse_proof_hash(hash)?;
+    }
+
+    if let (Some(holder), Some(asset_class), Some(policy_pda), Some(escrow_pda)) = (
+        &body.holder,
+        &body.asset_class,
+        &body.policy_pda,
+        &body.escrow_pda,
+    ) {
+        sqlx::query(
+            r#"
+            INSERT INTO policies (policy_id, holder, expiry, asset_class, policy_pda, escrow_pda)
+            VALUES ($1, $2, '2099-12-31T00:00:00Z', $3, $4, $5)
+            ON CONFLICT (policy_id) DO UPDATE SET
+                holder = EXCLUDED.holder,
+                asset_class = EXCLUDED.asset_class,
+                policy_pda = EXCLUDED.policy_pda,
+                escrow_pda = EXCLUDED.escrow_pda
+            "#,
+        )
+        .bind(policy_id.as_slice())
+        .bind(holder)
+        .bind(asset_class)
+        .bind(policy_pda)
+        .bind(escrow_pda)
+        .execute(&state.pool)
+        .await?;
+    }
+
+    let row = sqlx::query_as::<_, SettlementIndexDb>(
+        r#"
+        INSERT INTO settlements (policy_id, status, payout_amount, tx_signature, proof_hash, settled_at)
+        VALUES ($1, $2, $3, $4, $5, CASE WHEN $2 = 'PAID' THEN now() ELSE NULL END)
+        RETURNING id::text AS id,
+                  encode(policy_id, 'hex') AS policy_id,
+                  status,
+                  payout_amount,
+                  tx_signature,
+                  proof_hash,
+                  settled_at
+        "#,
+    )
+    .bind(policy_id.as_slice())
+    .bind(&body.status)
+    .bind(body.payout_amount)
+    .bind(&body.tx_signature)
+    .bind(&body.proof_hash)
+    .fetch_one(&state.pool)
+    .await?;
+
+    let verification_url = row
+        .proof_hash
+        .as_ref()
+        .map(|hash| verification_url(&state.public_base_url, hash));
+
+    Ok(Json(SettlementIndexRow {
+        id: row.id,
+        policy_id: row.policy_id,
+        status: row.status,
+        payout_amount: row.payout_amount,
+        tx_signature: row.tx_signature,
+        proof_hash: row.proof_hash,
+        verification_url,
+        settled_at: row.settled_at.map(rfc3339),
+    }))
+}
+
 async fn get_verify(
     State(state): State<AppState>,
     Path(proof_hash): Path<String>,
@@ -301,21 +593,7 @@ async fn get_verify(
     .await?
     .ok_or(ApiError::ProofNotFound)?;
 
-    Ok(Json(VerifyResponse {
-        asset_class: row.asset_class,
-        risk_score: row.risk_score,
-        scale: row.scale,
-        model_confidence: row.model_confidence,
-        timestamp: rfc3339(row.proof_timestamp),
-        zk_proof: ZkProofView {
-            hash: row.proof_hash.clone(),
-            verification_url: verification_url(&state.public_base_url, &row.proof_hash),
-        },
-        attested: true,
-        verified: false,
-        verification_method: "stored_attestation",
-        public_inputs: row.public_inputs,
-    }))
+    Ok(Json(verify_response_from_proof(row, &state.public_base_url)))
 }
 
 async fn get_oracle_latest(
@@ -344,6 +622,23 @@ struct SettlementIndexDb {
     tx_signature: Option<String>,
     proof_hash: Option<String>,
     settled_at: Option<DateTime<Utc>>,
+}
+
+#[derive(sqlx::FromRow)]
+struct SettlementDetailDb {
+    id: String,
+    policy_id: String,
+    status: String,
+    payout_amount: Option<i64>,
+    tx_signature: Option<String>,
+    proof_hash: Option<String>,
+    settled_at: Option<DateTime<Utc>>,
+    asset_class: Option<String>,
+    risk_score: Option<f64>,
+    scale: Option<String>,
+    model_confidence: Option<String>,
+    proof_timestamp: Option<DateTime<Utc>>,
+    public_inputs: Option<serde_json::Value>,
 }
 
 #[derive(sqlx::FromRow)]

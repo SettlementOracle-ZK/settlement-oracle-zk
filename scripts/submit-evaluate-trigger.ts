@@ -89,7 +89,7 @@ function loadKeypair(): Keypair {
 function loadPriceFeedPubkey(): PublicKey {
   const raw =
     process.env.PYTH_PRICE_FEED ??
-    "7UVimffxr9ow1uUEXgjbcAUtqTYNzRbD3D9sWpLjGjSR";
+    "7UVimffxr9ow1uXYxsr4LHAcV58mLzhmwaeKvJ1pjLiE";
   return new PublicKey(raw);
 }
 
@@ -141,7 +141,10 @@ async function main(): Promise<void> {
   const provider = new AnchorProvider(connection, wallet, {
     commitment: "confirmed",
   });
-  const program = new Program(idl as Idl, provider);
+  const program = new Program(
+    { ...(idl as Idl), address: programId.toBase58() },
+    provider,
+  );
 
   const builder = program.methods.evaluateTrigger().accounts({
     authority: payer.publicKey,

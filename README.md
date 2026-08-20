@@ -3,7 +3,7 @@
 Parametric insurance settlement platform on Solana. When an oracle attests a real-world event (for example, rainfall below a threshold), a smart contract automatically releases escrowed funds. A zero-knowledge (ZK) proof attests that the business rule was executed correctly against the oracle data.
 
 **Target users:** Insurers — actuaries, risk managers, pricing analysts, and auditors  
-**Stage:** MVP — Anchor workspace scaffolded for `programs/escrow`; other packages are docs-only until implemented
+**Stage:** MVP — devnet-ready; local stack documented in [`docs/runbooks/run-locally.md`](docs/runbooks/run-locally.md)
 
 ## Architecture
 
@@ -27,7 +27,7 @@ Full component map, trust boundaries, and runtime flow: [`docs/architecture/mvp-
 |------|---------|------------------|
 | [`programs/escrow/`](programs/escrow/) | Premium escrow and automated payout on-chain | Solana + Anchor (Rust) |
 | [`oracle-connector/`](oracle-connector/) | Consume oracle feeds; staleness and confidence checks | TypeScript + Pyth Network |
-| [`zk-prover/`](zk-prover/) | Off-chain ZK proof that the trigger rule ran correctly | Light Protocol or Succinct |
+| [`zk-prover/`](zk-prover/) | Off-chain ZK proof that the trigger rule ran correctly | TypeScript commitment prover |
 | [`api/`](api/) | Secure gateway for insurers: state queries and PRD payload | Rust + PostgreSQL |
 | [`web/`](web/) | Settlement dashboard and proof explorer | Next.js + Solana Wallet Adapter |
 | [`shared/`](shared/) | Cross-package schemas and type contracts (PRD payload, IDs) | JSON Schema / OpenAPI → Rust + TS |
@@ -63,21 +63,25 @@ Full component map, trust boundaries, and runtime flow: [`docs/architecture/mvp-
 
 ## Getting started
 
-The monorepo includes an **Anchor 1.1 workspace** at the repo root for [`programs/escrow/`](programs/escrow/). Other packages remain documentation stubs until their implementation phases.
+Full local setup: [`docs/runbooks/run-locally.md`](docs/runbooks/run-locally.md)
 
-**Prerequisites:** Solana CLI, Anchor CLI (`avm` / `anchor 1.1.x`), Rust toolchain (see [`rust-toolchain.toml`](rust-toolchain.toml)).
+**Prerequisites:** Docker, Solana CLI, Anchor 1.1.x, Rust (see [`rust-toolchain.toml`](rust-toolchain.toml)), Node 20+.
 
 ```bash
-# From repo root
-anchor build   # compile escrow + generate IDL
-anchor test    # run program tests (cargo test / LiteSVM)
+cp .env.example .env
+make db-up && make db-migrate
+cargo run --manifest-path api/Cargo.toml          # API :3000
+cd web && npm install && npm run dev              # dashboard :3001
+make test-all                                     # escrow + oracle + zk + api
+make settlement-flow                              # oracle → prover → API index
 ```
 
-1. Read the product requirements: [`docs/PRD.md`](docs/PRD.md)
-2. Read the MVP architecture: [`docs/architecture/mvp-system-overview.md`](docs/architecture/mvp-system-overview.md)
-3. Read agent and scope conventions: [`AGENTS.md`](AGENTS.md)
-4. Review shared payload contracts: [`shared/README.md`](shared/README.md)
-5. Continue package-by-package following the roadmap in the PRD (escrow logic → Pyth connector → ZK prover → API → web dashboard)
+On-chain devnet: [`docs/runbooks/devnet-smoke.md`](docs/runbooks/devnet-smoke.md)
+
+```bash
+PATH="$HOME/.cargo/bin:$PATH" anchor build --ignore-keys
+PATH="$HOME/.cargo/bin:$PATH" anchor test
+```
 
 ## Documentation
 
@@ -86,7 +90,9 @@ anchor test    # run program tests (cargo test / LiteSVM)
 | [`docs/PRD.md`](docs/PRD.md) | Product requirements |
 | [`docs/architecture/mvp-system-overview.md`](docs/architecture/mvp-system-overview.md) | MVP system architecture |
 | [`shared/README.md`](shared/README.md) | Shared contracts (payload and IDs) |
-| [`AGENTS.md`](AGENTS.md) | MVP guardrails, layer map, and agent conventions |
+| [`docs/runbooks/run-locally.md`](docs/runbooks/run-locally.md) | Run full stack locally |
+| [`docs/runbooks/devnet-smoke.md`](docs/runbooks/devnet-smoke.md) | Devnet deploy + smoke |
+| [`docs/checklists/mvp-prd-checklist.md`](docs/checklists/mvp-prd-checklist.md) | MVP vs PRD (Phase 5) |
 
 ## License
 
