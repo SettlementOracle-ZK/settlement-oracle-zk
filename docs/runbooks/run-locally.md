@@ -51,6 +51,16 @@ Requires API running with `APP_ENV=development`.
 
 ## 5. On-chain local (sem devnet)
 
+**Recomendado — um comando só** (validador + mock Pyth legacy + deploy + smoke):
+
+```bash
+make local-smoke
+```
+
+O feed `7UVimff...` na devnet pública é conta **Pyth Receiver** (~134 bytes), incompatível com o parser legacy do escrow. `make local-smoke` instala um mock legacy no validador local.
+
+Ou manualmente em dois terminais:
+
 Terminal 1 — validador com feature-set da devnet (necessário para deploy):
 
 ```bash
@@ -58,23 +68,17 @@ solana-test-validator --reset --url devnet --clone-feature-set \
   --clone 7UVimffxr9ow1uXYxsr4LHAcV58mLzhmwaeKvJ1pjLiE
 ```
 
-Terminal 2 — build, deploy e smoke:
+Terminal 2 — deploy + smoke (logo após subir o validador):
 
 ```bash
 solana config set --url http://127.0.0.1:8899
-solana airdrop 10
-
-npm install --prefix scripts
-PATH="$HOME/.cargo/bin:$PATH" cargo-build-sbf --manifest-path programs/escrow/Cargo.toml
-cp target/sbpf-solana-solana/release/escrow.so target/deploy/escrow.so
-solana program deploy target/deploy/escrow.so --program-id target/deploy/escrow-keypair.json
-
-PYTH_PRICE_FEED=7UVimffxr9ow1uXYxsr4LHAcV58mLzhmwaeKvJ1pjLiE \
-SOLANA_RPC_URL=http://127.0.0.1:8899 \
-make devnet-smoke
+make deploy-local    # necessário após --reset do validador
+make devnet-smoke    # auto-detecta :8899; faz deploy-local se o programa não existir
 ```
 
-Nota: `--ignore-keys` é só para `anchor build`, **não** para `anchor deploy`.
+`make devnet-smoke` detecta automaticamente o validador local em `:8899`. Override: `SOLANA_RPC_URL=... make devnet-smoke`.
+
+Nota: após `--reset` do validador o programa some — use `make deploy-local`. Se `evaluate_trigger` falhar com `OracleStale`, o feed Pyth clonado expirou (~60s) — use `make local-smoke`.
 
 ## 6. On-chain devnet (opcional)
 

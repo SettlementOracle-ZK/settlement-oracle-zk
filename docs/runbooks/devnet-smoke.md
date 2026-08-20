@@ -1,6 +1,6 @@
 # Devnet smoke test runbook
 
-Manual E2E on Solana devnet. Requires funded devnet wallet (`~/.config/solana/id.json`).
+Manual E2E on Solana devnet or **local test-validator**. `make devnet-smoke` auto-detects `http://127.0.0.1:8899` when a local validator is running; otherwise it uses public devnet (requires funded wallet `~/.config/solana/id.json`).
 
 ## Program
 

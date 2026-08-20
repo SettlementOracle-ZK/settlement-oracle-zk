@@ -29,6 +29,8 @@ const POLICY_SEED = Buffer.from("policy");
 const ESCROW_SEED = Buffer.from("escrow");
 const DEFAULT_PROGRAM_ID = "987M3ZdtXNuZu7jfA1TtTHNgYThNHEYyGVP5sq42j1Rd";
 const DEFAULT_PYTH_FEED = "7UVimffxr9ow1uXYxsr4LHAcV58mLzhmwaeKvJ1pjLiE";
+const LOCAL_VALIDATOR_URL = "http://127.0.0.1:8899";
+const DEVNET_RPC_URL = "https://api.devnet.solana.com";
 
 const TRIGGER_THRESHOLD = new BN("100000000000");
 const DEPOSIT_LAMPORTS = new BN(500_000_000);
@@ -94,11 +96,38 @@ function resolveProgramId(idl: EscrowIdl): PublicKey {
   return new PublicKey(idl.address ?? DEFAULT_PROGRAM_ID);
 }
 
+async function resolveRpcUrl(): Promise<string> {
+  if (process.env.SOLANA_RPC_URL) {
+    return process.env.SOLANA_RPC_URL;
+  }
+  try {
+    const local = new Connection(LOCAL_VALIDATOR_URL, "confirmed");
+    await local.getVersion();
+    console.log(`Local validator detected — using ${LOCAL_VALIDATOR_URL}`);
+    return LOCAL_VALIDATOR_URL;
+  } catch {
+    console.log(`No local validator — using ${DEVNET_RPC_URL}`);
+    return DEVNET_RPC_URL;
+  }
+}
+
+function lowBalanceHint(rpcUrl: string, balance: number): string {
+  const isLocal =
+    rpcUrl.includes("127.0.0.1") || rpcUrl.includes("localhost");
+  if (isLocal) {
+    return `Deployer balance too low (${balance} lamports). Run: solana airdrop 10 --url ${rpcUrl}`;
+  }
+  return [
+    `Deployer balance too low (${balance} lamports) on ${rpcUrl}.`,
+    "Start a local validator (see docs/runbooks/run-locally.md) and rerun make devnet-smoke,",
+    "or fund the wallet: solana airdrop 2 --url devnet",
+  ].join(" ");
+}
+
 async function main(): Promise<void> {
   const idl = loadIdl();
   const programId = resolveProgramId(idl);
-  const rpcUrl =
-    process.env.SOLANA_RPC_URL ?? "https://api.devnet.solana.com";
+  const rpcUrl = await resolveRpcUrl();
   const priceFeed = new PublicKey(
     process.env.PYTH_PRICE_FEED ?? DEFAULT_PYTH_FEED,
   );
@@ -117,9 +146,7 @@ async function main(): Promise<void> {
 
   const balance = await connection.getBalance(payer.publicKey);
   if (balance < 0.5 * LAMPORTS_PER_SOL) {
-    throw new Error(
-      `Deployer balance too low (${balance} lamports). Run: solana airdrop 2 --url devnet`,
-    );
+    throw new Error(lowBalanceHint(rpcUrl, balance));
   }
 
   console.log("=== Devnet smoke ===");
@@ -237,6 +264,26 @@ async function main(): Promise<void> {
 }
 
 main().catch((err: unknown) => {
-  console.error(err instanceof Error ? err.message : err);
+  const msg = err instanceof Error ? err.message : String(err);
+  if (msg.includes("OracleStale")) {
+    console.error(
+      [
+        "OracleStale: cloned Pyth feed is older than 60 seconds on the local validator.",
+        "Restart with a fresh clone and run smoke immediately:",
+        "  make local-smoke",
+        "Or manually: pkill -f solana-test-validator, restart validator, then make devnet-smoke",
+      ].join("\n"),
+    );
+  } else if (msg.includes("Attempt to load a program that does not exist")) {
+    console.error(
+      [
+        "Escrow program is not deployed on this cluster.",
+        "Run: make deploy-local",
+        "Or use make local-smoke for validator + deploy + smoke in one step.",
+      ].join("\n"),
+    );
+  } else {
+    console.error(msg);
+  }
   process.exit(1);
 });
