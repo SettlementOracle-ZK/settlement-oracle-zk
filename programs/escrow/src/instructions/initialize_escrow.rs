@@ -55,10 +55,5 @@ pub fn handle_initialize_escrow(
     escrow.paused = false;
     escrow.bump = ctx.bumps.escrow;
 
-    msg!(
-        "Escrow initialized for policy {:?}, threshold {}",
-        policy_id,
-        trigger_threshold
-    );
     Ok(())
 }

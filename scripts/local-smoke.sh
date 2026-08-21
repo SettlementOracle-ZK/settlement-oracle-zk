@@ -52,6 +52,7 @@ make deploy-local LOCAL_VALIDATOR_URL="$LOCAL_RPC"
 
 echo "==> Running on-chain smoke..."
 SOLANA_RPC_URL="$LOCAL_RPC" PYTH_PRICE_FEED="$MOCK_PYTH" \
+  SMOKE_DEPOSIT_LAMPORTS="${SMOKE_DEPOSIT_LAMPORTS:-10000}" \
   npm run devnet-smoke --prefix scripts
 
 echo "==> Local smoke PASSED"

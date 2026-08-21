@@ -17,18 +17,10 @@ pub struct PauseEscrow<'info> {
 
 pub fn handle_pause(ctx: Context<PauseEscrow>) -> Result<()> {
     ctx.accounts.escrow.paused = true;
-    msg!(
-        "Escrow paused for policy {:?}",
-        ctx.accounts.escrow.policy_id
-    );
     Ok(())
 }
 
 pub fn handle_unpause(ctx: Context<PauseEscrow>) -> Result<()> {
     ctx.accounts.escrow.paused = false;
-    msg!(
-        "Escrow unpaused for policy {:?}",
-        ctx.accounts.escrow.policy_id
-    );
     Ok(())
 }

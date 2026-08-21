@@ -60,4 +60,8 @@ pub mod escrow {
     pub fn evaluate_trigger(ctx: Context<EvaluateTrigger>) -> Result<()> {
         instructions::evaluate_trigger::handle_evaluate_trigger(ctx)
     }
+
+    pub fn init_mock_price_feed(ctx: Context<MockPriceFeedAccounts>) -> Result<()> {
+        instructions::mock_price_feed::handle_init_mock_price_feed(ctx)
+    }
 }

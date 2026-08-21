@@ -4,9 +4,9 @@ use {
         solana_program::{clock::Clock, instruction::Instruction, system_program},
         AccountDeserialize, InstructionData, ToAccountMetas,
     },
-    bytemuck::{bytes_of, Zeroable},
+    bytemuck::Zeroable,
     escrow::{
-        pyth_legacy::{PriceInfo, PriceStatus, SolanaPriceAccount, MAGIC, VERSION_2, ACCOUNT_TYPE_PRICE},
+        pyth_legacy::{MAGIC, MOCK_ACCOUNT_SIZE, VERSION_2, ACCOUNT_TYPE_PRICE},
         state::{EscrowAccount, EscrowStatus},
     },
     litesvm::LiteSVM,
@@ -79,26 +79,20 @@ fn install_mock_pyth_feed(
     publish_time: i64,
 ) -> Pubkey {
     let feed = Keypair::new();
-    let mut account = SolanaPriceAccount::zeroed();
-    account.magic = MAGIC;
-    account.ver = VERSION_2;
-    account.atype = ACCOUNT_TYPE_PRICE;
-    account.expo = -8;
-    account.timestamp = publish_time;
-    account.agg = PriceInfo {
-        price,
-        conf,
-        status: PriceStatus::Trading as u8,
-        corp_act: 0,
-        _pad: [0; 6],
-        pub_slot: 1,
-    };
+    let mut data = vec![0u8; MOCK_ACCOUNT_SIZE];
+    data[0..4].copy_from_slice(&MAGIC.to_le_bytes());
+    data[4..8].copy_from_slice(&VERSION_2.to_le_bytes());
+    data[8..12].copy_from_slice(&ACCOUNT_TYPE_PRICE.to_le_bytes());
+    data[96..104].copy_from_slice(&publish_time.to_le_bytes());
+    data[208..216].copy_from_slice(&price.to_le_bytes());
+    data[216..224].copy_from_slice(&conf.to_le_bytes());
+    data[224] = 1; // Trading
 
     svm.set_account(
         feed.pubkey(),
         SolanaAccount {
             lamports: 1_000_000,
-            data: bytes_of(&account).to_vec(),
+            data,
             owner: Pubkey::new_unique(),
             executable: false,
             rent_epoch: 0,
