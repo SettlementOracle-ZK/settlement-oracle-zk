@@ -54,10 +54,5 @@ pub fn handle_execute_payout(ctx: Context<ExecutePayout>) -> Result<()> {
     escrow.amount = 0;
     escrow.status = EscrowStatus::Paid;
 
-    msg!(
-        "Paid {} lamports to holder for policy {:?}",
-        amount,
-        escrow.policy_id
-    );
     Ok(())
 }

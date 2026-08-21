@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 use crate::{
     constants::*,
     error::ErrorCode,
-    pyth_legacy::{load_price_account, ValidatedOraclePrice},
+    pyth_legacy::{parse_validated_price, ValidatedOraclePrice},
 };
 
 /// Read a Pyth legacy price feed account and apply MVP staleness + confidence gates.
@@ -12,8 +12,7 @@ pub fn read_validated_price(price_feed: &AccountInfo, now: i64) -> Result<Valida
         .try_borrow_data()
         .map_err(|_| error!(ErrorCode::OracleStale))?;
 
-    let account = load_price_account(&data)?;
-    let quote = account.current_price(now, MAX_STALENESS_SECONDS)?;
+    let quote = parse_validated_price(&data, now, MAX_STALENESS_SECONDS)?;
 
     require!(quote.price != 0, ErrorCode::TriggerNotMet);
 

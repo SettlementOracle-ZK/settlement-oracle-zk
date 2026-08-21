@@ -6,6 +6,7 @@
   "scripts": {
     "evaluate-trigger": "tsx submit-evaluate-trigger.ts",
     "devnet-smoke": "tsx devnet-smoke.ts",
+    "bootstrap-devnet-oracle": "tsx bootstrap-devnet-oracle.ts",
     "settlement-flow": "tsx run-settlement-flow.ts"
   },
   "dependencies": {

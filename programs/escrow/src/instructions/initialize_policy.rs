@@ -39,6 +39,5 @@ pub fn handle_initialize_policy(
     policy.created_at = clock.unix_timestamp;
     policy.bump = ctx.bumps.policy;
 
-    msg!("Policy initialized: {:?}", policy_id);
     Ok(())
 }

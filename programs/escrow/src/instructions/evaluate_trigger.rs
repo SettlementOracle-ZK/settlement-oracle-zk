@@ -56,10 +56,5 @@ pub fn handle_evaluate_trigger(ctx: Context<EvaluateTrigger>) -> Result<()> {
     let escrow = &mut ctx.accounts.escrow;
     escrow.status = EscrowStatus::Triggered;
 
-    msg!(
-        "Trigger met: oracle price {} < threshold {}",
-        price.price,
-        escrow.trigger_threshold
-    );
     Ok(())
 }

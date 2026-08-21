@@ -1,11 +1,13 @@
 .PHONY: db-up db-migrate db-seed db-status db-reset db-down
 .PHONY: test-api test-escrow test-oracle test-zk test-all
-.PHONY: settlement-flow devnet-smoke deploy-local local-smoke
+.PHONY: settlement-flow devnet-smoke deploy-local deploy-devnet devnet-oracle devnet-setup local-smoke
 
 LOCAL_VALIDATOR_URL ?= http://127.0.0.1:8899
 LOCAL_PROGRAM_ID := $(shell solana-keygen pubkey target/deploy/escrow-keypair.json 2>/dev/null)
 DEVNET_RPC_URL ?= https://api.devnet.solana.com
 PYTH_PRICE_FEED ?= 7UVimffxr9ow1uXYxsr4LHAcV58mLzhmwaeKvJ1pjLiE
+# Smoke deposit in lamports (default 10000 = 0.00001 SOL). Demo: SMOKE_DEPOSIT_LAMPORTS=500000000
+SMOKE_DEPOSIT_LAMPORTS ?= 10000
 
 db-up:
 	docker compose up -d postgres
@@ -55,6 +57,36 @@ deploy-local:
 		--program-id target/deploy/escrow-keypair.json \
 		--url $(LOCAL_VALIDATOR_URL)
 
+deploy-devnet:
+	@test -f target/deploy/escrow-keypair.json || (echo "Missing target/deploy/escrow-keypair.json — run anchor build first." && exit 1)
+	@echo "WARNING: devnet deploy costs ~1+ SOL. Run once; avoid redeploy unless the program changed."
+	export CARGO_TARGET_DIR=$$PWD/target && \
+		PATH="$$HOME/.cargo/bin:$$PATH" cargo-build-sbf --manifest-path programs/escrow/Cargo.toml --arch v0
+	cp target/sbpf-solana-solana/release/escrow.so target/deploy/escrow.so
+	solana program deploy target/deploy/escrow.so \
+		--program-id target/deploy/escrow-keypair.json \
+		--url $(DEVNET_RPC_URL) \
+		--max-len $$(wc -c < target/deploy/escrow.so | tr -d ' ')
+	@PROGRAM_ID=$$(solana-keygen pubkey target/deploy/escrow-keypair.json); \
+		echo "Deployed escrow $$PROGRAM_ID on devnet"
+
+devnet-oracle:
+	npm install --prefix scripts
+	SOLANA_RPC_URL="$(DEVNET_RPC_URL)" npm run bootstrap-devnet-oracle --prefix scripts
+
+devnet-setup:
+	@PROGRAM_ID=$$(solana-keygen pubkey target/deploy/escrow-keypair.json 2>/dev/null); \
+	if [ -z "$$PROGRAM_ID" ]; then \
+		echo "Missing target/deploy/escrow-keypair.json — run anchor build first."; exit 1; \
+	fi; \
+	if solana program show "$$PROGRAM_ID" --url $(DEVNET_RPC_URL) >/dev/null 2>&1; then \
+		echo "Program $$PROGRAM_ID already on devnet — skipping deploy (saves SOL)"; \
+	else \
+		echo "First-time devnet deploy (~1+ SOL)..."; \
+		$(MAKE) deploy-devnet DEVNET_RPC_URL="$(DEVNET_RPC_URL)"; \
+	fi
+	$(MAKE) devnet-oracle DEVNET_RPC_URL="$(DEVNET_RPC_URL)"
+
 devnet-smoke:
 	npm install --prefix scripts
 	@RPC=""; \
@@ -74,7 +106,8 @@ devnet-smoke:
 		echo "Escrow program not on local validator — running make deploy-local"; \
 		$(MAKE) deploy-local LOCAL_VALIDATOR_URL="$$RPC"; \
 	fi; \
-	PYTH_PRICE_FEED="$(PYTH_PRICE_FEED)" SOLANA_RPC_URL="$$RPC" \
+	SOLANA_RPC_URL="$$RPC" \
+		SMOKE_DEPOSIT_LAMPORTS="$(SMOKE_DEPOSIT_LAMPORTS)" \
 		npm run devnet-smoke --prefix scripts
 
 local-smoke:

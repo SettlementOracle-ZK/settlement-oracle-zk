@@ -1,51 +1,67 @@
 # Devnet smoke test runbook
 
-Manual E2E on Solana devnet or **local test-validator**. `make devnet-smoke` auto-detects `http://127.0.0.1:8899` when a local validator is running; otherwise it uses public devnet (requires funded wallet `~/.config/solana/id.json`).
+Manual E2E on Solana **devnet** or **local test-validator**. `make devnet-smoke` auto-detects `http://127.0.0.1:8899` when a local validator is running; otherwise it uses public devnet.
 
-## Program
+## Budget (2 SOL wallet)
 
-| Field | Value |
-|-------|--------|
-| Program ID | `987M3ZdtXNuZu7jfA1TtTHNgYThNHEYyGVP5sq42j1Rd` |
-| Cluster | devnet |
-| Pyth SOL/USD feed | `7UVimffxr9ow1uXYxsr4LHAcV58mLzhmwaeKvJ1pjLiE` |
+| Step | Cost | Notes |
+|------|------|--------|
+| `make deploy-devnet` | **~1–1.5 SOL once** | Do **not** redeploy on every test |
+| `make devnet-oracle` | ~0.02 SOL once | Rent for mock Pyth PDA (~3 KB) |
+| Each `make devnet-smoke` | ~0.003–0.005 SOL | New policy/escrow PDAs + tx fees |
+| Deposit in smoke | 10_000 lamports default | Returned to holder on payout |
+| `make settlement-flow` | **0 SOL** | Off-chain only |
 
-## Build + deploy (Rodrigo 4.1)
+Demo with visible payout: `SMOKE_DEPOSIT_LAMPORTS=500000000 make devnet-smoke` (0.5 SOL deposit).
+
+## One-time devnet setup
 
 ```bash
 solana config set --url devnet
-solana airdrop 2
+# Fund wallet (faucet or devnet-pow) — you need ~2 SOL total
 PATH="$HOME/.cargo/bin:$PATH" anchor build --ignore-keys
-PATH="$HOME/.cargo/bin:$PATH" anchor deploy --provider.cluster devnet --ignore-keys
-solana program show 987M3ZdtXNuZu7jfA1TtTHNgYThNHEYyGVP5sq42j1Rd   # Klisman 4.7
+
+# Deploy program once + init mock oracle (skips deploy if already on-chain)
+make devnet-setup
 ```
 
-## Smoke part 1 (Rodrigo 4.2)
+Program ID comes from `target/deploy/escrow-keypair.json` (shown after deploy).
 
-1. `initialize_policy` — policy id, holder, expiry, asset_class
-2. `initialize_escrow` — link to policy, set `trigger_threshold`
-3. `deposit_premium` — fund escrow PDA
-
-Assert escrow account `status = Active`, `amount > 0`.
-
-## Smoke part 2 (Klisman 4.6)
-
-1. `evaluate_trigger` — pass Pyth price feed account (`PYTH_PRICE_FEED`)
-2. Assert escrow `status = Triggered`
-3. `execute_payout` — assert holder received lamports, `status = Paid`
+## Cheap smoke (repeat many times)
 
 ```bash
-npm run evaluate-trigger --prefix scripts -- --policy-id <hex> --send
+# Default deposit 0.00001 SOL — omit PYTH_PRICE_FEED to use program mock PDA
+make devnet-smoke
+
+# Or explicitly:
+SOLANA_RPC_URL=https://api.devnet.solana.com make devnet-smoke
+```
+
+Flow on devnet:
+
+1. Bootstrap mock oracle PDA (`init_mock_price_feed` or `refresh_mock_price_feed`)
+2. `initialize_policy` → `initialize_escrow` → `deposit_premium`
+3. `evaluate_trigger` (mock feed price 50 < threshold 100)
+4. `execute_payout`
+
+## Why mock oracle on devnet?
+
+Devnet account `7UVimff...` is a **Pyth Receiver** account (~134 B), not the legacy layout the escrow program reads. The program-owned PDA (`seed = mock_pyth`) stores a valid legacy layout and stays fresh.
+
+## Local alternative (free SOL)
+
+```bash
+make local-smoke        # validator + mock JSON feed + deploy + smoke
+make local-smoke-keep   # same, validator stays up
 ```
 
 ## Off-chain index
 
-After on-chain payout, register proof + settlement via `make settlement-flow` or update DB rows with tx signature.
+After on-chain payout, register via `make settlement-flow` or `POST /settlements/register` with the smoke tx signature and proof hash.
 
-## Verify deploy
+## Verify
 
 ```bash
-solana program show 987M3ZdtXNuZu7jfA1TtTHNgYThNHEYyGVP5sq42j1Rd
-anchor test
+solana program show $(solana-keygen pubkey target/deploy/escrow-keypair.json)
 make test-all
 ```

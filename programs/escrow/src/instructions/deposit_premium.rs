@@ -43,6 +43,5 @@ pub fn handle_deposit_premium(ctx: Context<DepositPremium>, amount: u64) -> Resu
         .checked_add(amount)
         .ok_or(ErrorCode::InsufficientDeposit)?;
 
-    msg!("Deposited {} lamports into escrow", amount);
     Ok(())
 }

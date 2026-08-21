@@ -7,7 +7,8 @@
  *   PATH="$HOME/.cargo/bin:$PATH" anchor build --ignore-keys
  *   npm run devnet-smoke --prefix scripts
  *
- * Env: SOLANA_RPC_URL, ANCHOR_WALLET, ESCROW_PROGRAM_ID, PYTH_PRICE_FEED
+ * Env: SOLANA_RPC_URL, ANCHOR_WALLET, ESCROW_PROGRAM_ID, PYTH_PRICE_FEED,
+ *      SMOKE_DEPOSIT_LAMPORTS (default 10000 = 0.00001 SOL)
  */
 
 import crypto from "node:crypto";
@@ -23,7 +24,9 @@ import {
   LAMPORTS_PER_SOL,
   PublicKey,
   SystemProgram,
+  Transaction,
 } from "@solana/web3.js";
+import { isInitializedMockFeed, mockPythPda } from "./mock-pyth-pda.js";
 
 const POLICY_SEED = Buffer.from("policy");
 const ESCROW_SEED = Buffer.from("escrow");
@@ -33,7 +36,8 @@ const LOCAL_VALIDATOR_URL = "http://127.0.0.1:8899";
 const DEVNET_RPC_URL = "https://api.devnet.solana.com";
 
 const TRIGGER_THRESHOLD = new BN("100000000000");
-const DEPOSIT_LAMPORTS = new BN(500_000_000);
+/** Default smoke deposit: 10_000 lamports (0.00001 SOL). Override with SMOKE_DEPOSIT_LAMPORTS. */
+const DEFAULT_DEPOSIT_LAMPORTS = 10_000;
 const POLICY_EXPIRY = new BN("4102444800");
 const ASSET_CLASS = Buffer.alloc(32);
 Buffer.from("agriculture_climate").copy(ASSET_CLASS);
@@ -68,8 +72,61 @@ function statusLabel(status: unknown): string {
   return String(status);
 }
 
+function parseDepositLamports(): BN {
+  const raw = process.env.SMOKE_DEPOSIT_LAMPORTS ?? String(DEFAULT_DEPOSIT_LAMPORTS);
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < 1 || !Number.isInteger(value)) {
+    throw new Error(
+      `SMOKE_DEPOSIT_LAMPORTS must be a positive integer (lamports), got "${raw}"`,
+    );
+  }
+  return new BN(value);
+}
+
+function formatSol(lamports: number): string {
+  return `${(lamports / LAMPORTS_PER_SOL).toFixed(9)} SOL`;
+}
+
 function policyIdHex(policyId: Buffer): string {
   return policyId.toString("hex");
+}
+
+function isLocalRpc(rpcUrl: string): boolean {
+  return rpcUrl.includes("127.0.0.1") || rpcUrl.includes("localhost");
+}
+
+async function ensureMockOracle(
+  program: Program,
+  connection: Connection,
+  payer: Keypair,
+  programId: PublicKey,
+  priceFeed: PublicKey,
+): Promise<void> {
+  const existing = await connection.getAccountInfo(priceFeed);
+  if (isInitializedMockFeed(existing?.data)) {
+    console.log("mock oracle already initialized — re-init to refresh timestamp");
+  } else {
+    console.log("mock oracle missing — init (one-time rent on devnet)");
+  }
+  const sig = await program.methods
+    .initMockPriceFeed()
+    .accounts({
+      authority: payer.publicKey,
+      priceFeed,
+      systemProgram: SystemProgram.programId,
+    })
+    .rpc();
+  console.log("  init sig", sig);
+}
+
+async function resolvePriceFeed(programId: PublicKey, rpcUrl: string): Promise<PublicKey> {
+  if (process.env.PYTH_PRICE_FEED) {
+    return new PublicKey(process.env.PYTH_PRICE_FEED);
+  }
+  if (isLocalRpc(rpcUrl)) {
+    return new PublicKey(DEFAULT_PYTH_FEED);
+  }
+  return mockPythPda(programId);
 }
 
 function pdas(programId: PublicKey, policyId: Buffer) {
@@ -125,12 +182,11 @@ function lowBalanceHint(rpcUrl: string, balance: number): string {
 }
 
 async function main(): Promise<void> {
+  const depositLamports = parseDepositLamports();
   const idl = loadIdl();
   const programId = resolveProgramId(idl);
   const rpcUrl = await resolveRpcUrl();
-  const priceFeed = new PublicKey(
-    process.env.PYTH_PRICE_FEED ?? DEFAULT_PYTH_FEED,
-  );
+  const priceFeed = await resolvePriceFeed(programId, rpcUrl);
 
   const payer = loadKeypair();
   const holder = Keypair.generate();
@@ -144,13 +200,25 @@ async function main(): Promise<void> {
   });
   const program = new Program({ ...(idl as Idl), address: programId.toBase58() }, provider);
 
+  const usingProgramMock =
+    !process.env.PYTH_PRICE_FEED && !isLocalRpc(rpcUrl) && priceFeed.equals(mockPythPda(programId));
+  if (usingProgramMock) {
+    console.log("\n[0/5] bootstrap mock oracle (devnet)");
+    await ensureMockOracle(program, connection, payer, programId, priceFeed);
+  }
+
   const balance = await connection.getBalance(payer.publicKey);
-  if (balance < 0.5 * LAMPORTS_PER_SOL) {
-    throw new Error(lowBalanceHint(rpcUrl, balance));
+  // Rent for 2 PDAs + ~5 tx fees; deposit is returned to holder on payout (minus rent left on PDAs).
+  const minBalance = depositLamports.toNumber() + 5_000_000;
+  if (balance < minBalance) {
+    throw new Error(
+      `${lowBalanceHint(rpcUrl, balance)} (need ~${formatSol(minBalance)} including deposit + rent/fees buffer)`,
+    );
   }
 
   console.log("=== Devnet smoke ===");
   console.log("rpc       ", rpcUrl);
+  console.log("deposit   ", depositLamports.toString(), "lamports", `(${formatSol(depositLamports.toNumber())})`);
   console.log("program   ", programId.toBase58());
   console.log("payer     ", payer.publicKey.toBase58());
   console.log("holder    ", holder.publicKey.toBase58());
@@ -159,7 +227,23 @@ async function main(): Promise<void> {
   console.log("escrow PDA", escrow.toBase58());
   console.log("pyth feed ", priceFeed.toBase58());
 
-  const holderBefore = await connection.getBalance(holder.publicKey);
+  const holderRent = await connection.getMinimumBalanceForRentExemption(0);
+  let holderBefore = await connection.getBalance(holder.publicKey);
+  if (holderBefore < holderRent) {
+    const fundSig = await connection.sendTransaction(
+      new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey: payer.publicKey,
+          toPubkey: holder.publicKey,
+          lamports: holderRent - holderBefore,
+        }),
+      ),
+      [payer],
+    );
+    await connection.confirmTransaction(fundSig, "confirmed");
+    holderBefore = await connection.getBalance(holder.publicKey);
+    console.log("holder rent prefund", holderRent, "lamports");
+  }
 
   console.log("\n[1/5] initialize_policy");
   const sig1 = await program.methods
@@ -191,7 +275,7 @@ async function main(): Promise<void> {
 
   console.log("[3/5] deposit_premium");
   const sig3 = await program.methods
-    .depositPremium(DEPOSIT_LAMPORTS)
+    .depositPremium(depositLamports)
     .accounts({
       authority: payer.publicKey,
       escrow,
@@ -204,9 +288,9 @@ async function main(): Promise<void> {
   if (statusLabel(afterDeposit.status) !== "active") {
     throw new Error(`expected Active after deposit, got ${statusLabel(afterDeposit.status)}`);
   }
-  if (!afterDeposit.amount.eq(DEPOSIT_LAMPORTS)) {
+  if (!afterDeposit.amount.eq(depositLamports)) {
     throw new Error(
-      `expected amount ${DEPOSIT_LAMPORTS}, got ${afterDeposit.amount.toString()}`,
+      `expected amount ${depositLamports}, got ${afterDeposit.amount.toString()}`,
     );
   }
   console.log("  escrow status Active, amount", afterDeposit.amount.toString());
@@ -251,14 +335,14 @@ async function main(): Promise<void> {
 
   const holderAfter = await connection.getBalance(holder.publicKey);
   const received = holderAfter - holderBefore;
-  if (received !== DEPOSIT_LAMPORTS.toNumber()) {
+  if (received !== depositLamports.toNumber()) {
     throw new Error(
-      `holder received ${received} lamports, expected ${DEPOSIT_LAMPORTS.toString()}`,
+      `holder received ${received} lamports, expected ${depositLamports.toString()}`,
     );
   }
 
   console.log("\n=== Smoke PASSED ===");
-  console.log("holder received", received, "lamports");
+  console.log("deposit spent (returned to holder)", formatSol(received));
   console.log("policy-id for scripts:", policyIdHex(policyId));
   console.log("last tx:", sig5);
 }
@@ -268,18 +352,17 @@ main().catch((err: unknown) => {
   if (msg.includes("OracleStale")) {
     console.error(
       [
-        "OracleStale: cloned Pyth feed is older than 60 seconds on the local validator.",
-        "Restart with a fresh clone and run smoke immediately:",
-        "  make local-smoke",
-        "Or manually: pkill -f solana-test-validator, restart validator, then make devnet-smoke",
+        "OracleStale: price feed is stale or wrong format.",
+        "On devnet, omit PYTH_PRICE_FEED to use the program mock PDA (make devnet-setup first).",
+        "On local validator, use: make local-smoke",
       ].join("\n"),
     );
   } else if (msg.includes("Attempt to load a program that does not exist")) {
     console.error(
       [
         "Escrow program is not deployed on this cluster.",
-        "Run: make deploy-local",
-        "Or use make local-smoke for validator + deploy + smoke in one step.",
+        "Devnet (once): make deploy-devnet && make devnet-oracle",
+        "Local: make deploy-local or make local-smoke",
       ].join("\n"),
     );
   } else {

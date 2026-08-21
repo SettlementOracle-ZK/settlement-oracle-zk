@@ -6,6 +6,9 @@ pub const POLICY_SEED: &[u8] = b"policy";
 #[constant]
 pub const ESCROW_SEED: &[u8] = b"escrow";
 
+#[constant]
+pub const MOCK_PYTH_SEED: &[u8] = b"mock_pyth";
+
 /// Reject oracle data older than this (seconds). Matches oracle-connector MVP default.
 #[constant]
 pub const MAX_STALENESS_SECONDS: u64 = 60;
