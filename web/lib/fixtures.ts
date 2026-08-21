@@ -1,5 +1,5 @@
 import { API_BASE } from './config';
-import type { OracleFeed, PolicyIndex, SettlementIndex, VerifyPayload } from './types';
+import type { OracleFeed, PolicyDetail, PolicyIndex, SettlementIndex, VerifyPayload } from './types';
 
 export const DEMO_PROOF_HASH =
   '0xabc123def4567890abc123def4567890abc123def4567890abc123def4567890';
@@ -69,6 +69,43 @@ export const FIXTURE_VERIFY: Record<string, VerifyPayload> = {
       operator: 'gte',
       flight_number: 'LA456',
       route: 'GRU-MIA',
+    },
+  },
+};
+
+export const FIXTURE_POLICY_DETAILS: Record<string, PolicyDetail> = {
+  [DEMO_POLICY_ID]: {
+    policy_id: DEMO_POLICY_ID,
+    holder: 'AeJ6dvUWySX1HfsQ4bHHLL2xygpgDxBYmNyCgWaqjnJS',
+    expiry: Date.parse('2099-12-31T00:00:00Z') / 1000,
+    asset_class: 'flight_delay',
+    escrow: {
+      status: 'Triggered',
+      amount: 10_000,
+      trigger_threshold: 120,
+      paused: false,
+      authority: 'AeJ6dvUWySX1HfsQ4bHHLL2xygpgDxBYmNyCgWaqjnJS',
+    },
+    pdas: {
+      policy: 'Policy1111111111111111111111111111111111111',
+      escrow: 'Escrow1111111111111111111111111111111111111',
+    },
+  },
+  bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb: {
+    policy_id: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+    holder: '2KyMxgsf29vr8pjyCfvwcaNeeM4HWzz9s7mJTdYeBEXP',
+    expiry: Date.parse('2027-06-01T00:00:00Z') / 1000,
+    asset_class: 'flight_delay',
+    escrow: {
+      status: 'Active',
+      amount: 10_000,
+      trigger_threshold: 120,
+      paused: false,
+      authority: '2KyMxgsf29vr8pjyCfvwcaNeeM4HWzz9s7mJTdYeBEXP',
+    },
+    pdas: {
+      policy: 'Policy2222222222222222222222222222222222222',
+      escrow: 'Escrow2222222222222222222222222222222222222',
     },
   },
 };

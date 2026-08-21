@@ -290,18 +290,38 @@ tr.row-selected td {
 
 .hash-chip {
   display: inline-flex;
-  align-items: center;
+  align-items: baseline;
   gap: 0.4rem;
-  background: var(--proof-dim);
-  border: 1px solid rgba(157, 140, 255, 0.28);
-  color: var(--paper);
-  border-radius: 999px;
-  padding: 0.18rem 0.5rem 0.18rem 0.65rem;
+  max-width: 100%;
+  margin: 0;
+  padding: 0.08rem 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  color: inherit;
   cursor: pointer;
+  text-align: left;
+}
+
+.hash-chip:focus-visible {
+  outline: 1px solid var(--tick);
+  outline-offset: 3px;
+}
+
+.hash-chip-label {
+  flex: none;
+  min-width: 3.4rem;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fog);
 }
 
 .hash-chip .hash {
   color: var(--paper);
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
 }
 
 .hash-chip-hint {
@@ -309,7 +329,55 @@ tr.row-selected td {
   font-size: 0.58rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--proof);
+  color: var(--fog);
+  opacity: 0;
+}
+
+.hash-chip:hover .hash-chip-hint,
+.hash-chip:focus-visible .hash-chip-hint,
+.hash-chip[data-copied='true'] .hash-chip-hint {
+  opacity: 1;
+}
+
+.hash-chip[data-copied='true'] .hash-chip-hint {
+  color: var(--tick);
+}
+
+.id-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.policy-table td.policy-expiry {
+  color: var(--fog);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.policy-table td.policy-action {
+  text-align: right;
+  width: 1%;
+}
+
+.btn-open {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.32rem 0.85rem;
+  border: 1px solid rgba(61, 255, 179, 0.4);
+  border-radius: 999px;
+  background: var(--tick-dim);
+  color: var(--tick);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.btn-open:hover {
+  border-color: var(--tick);
+  background: rgba(61, 255, 179, 0.2);
 }
 
 .chip {
@@ -380,6 +448,15 @@ tr.row-selected td {
 }
 .badge-failed::before {
   background: var(--halt);
+}
+
+.badge-active {
+  background: var(--tick-dim);
+  color: var(--tick);
+  border-color: rgba(61, 255, 179, 0.35);
+}
+.badge-active::before {
+  background: var(--tick);
 }
 
 .rail {
@@ -580,6 +657,10 @@ tr.row-selected td {
 
 .form-actions {
   margin-top: 1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
 }
 
 .result-dl {
@@ -773,6 +854,90 @@ tr.row-selected td {
   font-family: var(--font-display), 'Syne', sans-serif;
   font-size: 1.15rem;
   letter-spacing: -0.03em;
+}
+
+.panel + .panel {
+  margin-top: 1rem;
+}
+
+.panel-kicker {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.85rem 1.15rem 0.65rem;
+  border-bottom: 1px solid var(--stroke);
+}
+
+.policy-dl {
+  padding: 0.85rem 1.15rem 1.15rem;
+}
+
+.chip-halt {
+  color: var(--halt);
+  border-color: rgba(255, 92, 122, 0.4);
+  background: var(--halt-dim);
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-body), sans-serif !important;
+  font-size: 1rem !important;
+}
+
+.sparkline {
+  padding: 0 1.15rem 1.15rem;
+  margin: 0;
+}
+
+.sparkline svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.sparkline-grid {
+  stroke: var(--stroke);
+  stroke-width: 1;
+}
+
+.sparkline-threshold {
+  stroke: var(--strike);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+}
+
+.sparkline-fill {
+  fill: rgba(61, 255, 179, 0.12);
+}
+
+.sparkline-line {
+  fill: none;
+  stroke: var(--tick);
+  stroke-width: 2;
+}
+
+.sparkline-dot {
+  fill: var(--tick);
+}
+
+.sparkline-label,
+.sparkline-axis {
+  fill: var(--fog);
+  font-size: 11px;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  letter-spacing: 0.06em;
+}
+
+.sparkline-caption {
+  margin: 0.55rem 0 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fog);
 }
 
 .empty {

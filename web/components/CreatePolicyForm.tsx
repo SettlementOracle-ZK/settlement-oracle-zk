@@ -36,7 +36,7 @@ export function CreatePolicyForm() {
   const onSubmit = useCallback(async () => {
     setError(null);
     if (!wallet?.publicKey) {
-      setError('Connect Phantom or Solflare on devnet first.');
+      setError('Connect Phantom or Solflare on localnet (Localhost RPC) first.');
       return;
     }
     if (!flightNumber.trim()) {
@@ -52,38 +52,52 @@ export function CreatePolicyForm() {
         triggerThresholdMinutes: delayHours * 60,
       });
 
-      setStep('index');
-      await registerPolicy({
-        policy_id: chain.policyIdHex,
-        holder: wallet.publicKey.toBase58(),
-        expiry: policyExpiryRfc3339(),
-        asset_class: ASSET_CLASS_FLIGHT_DELAY,
-        policy_pda: chain.policyPda,
-        escrow_pda: chain.escrowPda,
-        init_policy_tx: chain.signatures.initializePolicy,
-      });
-
-      setResult({
+      const created = {
         policyIdHex: chain.policyIdHex,
         policyPda: chain.policyPda,
         escrowPda: chain.escrowPda,
         payoutTx: chain.signatures.depositPremium,
-      });
+      };
+
+      setStep('index');
+      try {
+        await registerPolicy({
+          policy_id: chain.policyIdHex,
+          holder: wallet.publicKey.toBase58(),
+          expiry: policyExpiryRfc3339(),
+          asset_class: ASSET_CLASS_FLIGHT_DELAY,
+          policy_pda: chain.policyPda,
+          escrow_pda: chain.escrowPda,
+          init_policy_tx: chain.signatures.initializePolicy,
+        });
+      } catch (indexErr) {
+        setResult(created);
+        setStep('done');
+        setError(
+          indexErr instanceof Error
+            ? `On-chain cover exists, but the API index failed: ${indexErr.message}`
+            : 'On-chain cover exists, but the API index failed.',
+        );
+        return;
+      }
+
+      setResult(created);
       setStep('done');
     } catch (err) {
       setStep('error');
       setError(err instanceof Error ? err.message : String(err));
     }
-  }, [connection, wallet, flightNumber, premiumLamports]);
+  }, [connection, wallet, flightNumber, premiumLamports, delayHours]);
 
   if (step === 'done' && result) {
     return (
       <div className="panel form-panel">
         <h2 className="form-title">Cover registered</h2>
         <p className="lede">
-          Flight <strong>{flightNumber}</strong> ({route}) — parametric delay cover is on devnet.
+          Flight <strong>{flightNumber}</strong> ({route}) — parametric delay cover is on localnet.
           Premium escrowed; payout fires when the oracle attests the delay trigger.
         </p>
+        {error ? <p className="warn">{error}</p> : null}
         <dl className="result-dl">
           <dt>Policy id</dt>
           <dd className="mono">0x{result.policyIdHex}</dd>
@@ -96,7 +110,7 @@ export function CreatePolicyForm() {
           <dt>Deposit tx</dt>
           <dd>
             <a
-              href={`https://explorer.solana.com/tx/${result.payoutTx}?cluster=devnet`}
+              href={`https://explorer.solana.com/tx/${result.payoutTx}?cluster=custom&customUrl=${encodeURIComponent('http://127.0.0.1:8899')}`}
               target="_blank"
               rel="noreferrer"
             >
@@ -105,8 +119,11 @@ export function CreatePolicyForm() {
           </dd>
         </dl>
         <div className="form-actions">
-          <Link className="btn-primary" href="/policies">
-            Back to policies
+          <Link className="btn-primary" href={`/policies/${result.policyIdHex}`}>
+            Open policy
+          </Link>
+          <Link className="link-btn" href="/policies">
+            Back to list
           </Link>
         </div>
       </div>
@@ -151,8 +168,9 @@ export function CreatePolicyForm() {
       </div>
 
       <p className="lede form-note">
-        Beneficiary wallet: connected account (receives automatic payout). Three devnet
-        transactions: policy → escrow → premium deposit (~0.005 SOL fees + premium).
+        Beneficiary wallet: connected account (receives automatic payout). Three localnet
+        transactions: policy → escrow → premium deposit. Set the wallet network to Localhost
+        (`http://127.0.0.1:8899`), not Devnet.
       </p>
 
       {error ? <p className="warn warn-critical">{error}</p> : null}
@@ -165,10 +183,10 @@ export function CreatePolicyForm() {
           onClick={() => void onSubmit()}
         >
           {step === 'chain'
-            ? 'Signing on devnet…'
+            ? 'Signing on localnet…'
             : step === 'index'
               ? 'Indexing policy…'
-              : 'Create cover on devnet'}
+              : 'Create cover on localnet'}
         </button>
       </div>
     </div>

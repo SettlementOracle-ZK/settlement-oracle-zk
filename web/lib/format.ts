@@ -1,11 +1,33 @@
-import type { SettlementStatus } from './types';
+import type { DeskStatus } from './types';
 
-export function normalizeStatus(raw: string): SettlementStatus {
+export function canonicalPolicyId(id: string): string {
+  return id.trim().replace(/^0x/i, '').toLowerCase();
+}
+
+export function samePolicyId(a: string, b: string): boolean {
+  return canonicalPolicyId(a) === canonicalPolicyId(b);
+}
+
+export function normalizeStatus(raw: string): DeskStatus {
   const value = raw.trim().toUpperCase();
   if (value === 'TRIGGERED') return 'TRIGGERED';
   if (value === 'PAID') return 'PAID';
   if (value === 'FAILED') return 'FAILED';
+  if (value === 'ACTIVE') return 'ACTIVE';
   return 'PENDING';
+}
+
+export function formatUnix(seconds: number | null | undefined): string {
+  if (seconds == null || !Number.isFinite(seconds)) return '—';
+  return formatWhen(new Date(seconds * 1000).toISOString());
+}
+
+export function formatDelayMinutes(minutes: number | null | undefined): string {
+  if (minutes == null || !Number.isFinite(minutes)) return '—';
+  if (minutes >= 60 && minutes % 60 === 0) {
+    return `${minutes} min (${minutes / 60}h)`;
+  }
+  return `${minutes} min`;
 }
 
 export function shortHash(value: string, size = 6): string {

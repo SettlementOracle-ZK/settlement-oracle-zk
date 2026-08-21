@@ -1,8 +1,9 @@
 import { normalizeStatus } from '@/lib/format';
-import type { SettlementStatus } from '@/lib/types';
+import type { DeskStatus } from '@/lib/types';
 
-const LABELS: Record<SettlementStatus, string> = {
+const LABELS: Record<DeskStatus, string> = {
   PENDING: 'Pending',
+  ACTIVE: 'Active',
   TRIGGERED: 'Triggered',
   PAID: 'Paid',
   FAILED: 'Failed',

@@ -1,8 +1,10 @@
 import { API_BASE, USE_FIXTURES } from './config';
-import type { OracleFeed, PolicyIndex, SettlementIndex, VerifyPayload } from './types';
+import { canonicalPolicyId } from './format';
+import type { OracleFeed, PolicyDetail, PolicyIndex, SettlementIndex, VerifyPayload } from './types';
 import {
   FIXTURE_ORACLE,
   FIXTURE_POLICIES,
+  FIXTURE_POLICY_DETAILS,
   FIXTURE_SETTLEMENTS,
   FIXTURE_VERIFY,
 } from './fixtures';
@@ -17,7 +19,15 @@ export class ApiUnavailableError extends Error {
 }
 
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, { cache: 'no-store', ...init });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, { cache: 'no-store', ...init });
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    throw new ApiUnavailableError(
+      `Cannot reach API at ${API_BASE}${path} (${detail}). From the repo root run: make db-up && cargo run --manifest-path api/Cargo.toml`,
+    );
+  }
   if (!response.ok) {
     const body = await response.text();
     throw new ApiUnavailableError(`${response.status} ${path}: ${body}`);
@@ -34,6 +44,19 @@ function fixtureVerify(proofHash: string): VerifyPayload | null {
     attested: false,
     verification_method: 'fixture',
   };
+}
+
+export async function getPolicy(
+  id: string,
+): Promise<{ data: PolicyDetail | null; source: 'api' | 'fixture' }> {
+  try {
+    const data = await fetchJson<PolicyDetail>(`/policies/${encodeURIComponent(id)}`);
+    return { data, source: 'api' };
+  } catch {
+    if (!USE_FIXTURES) return { data: null, source: 'api' };
+    const data = FIXTURE_POLICY_DETAILS[canonicalPolicyId(id)] ?? null;
+    return { data, source: data ? 'fixture' : 'api' };
+  }
 }
 
 export async function getPolicies(): Promise<{ data: PolicyIndex[]; source: 'api' | 'fixture' }> {

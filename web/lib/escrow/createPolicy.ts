@@ -1,5 +1,5 @@
 import BN from 'bn.js';
-import { SystemProgram } from '@solana/web3.js';
+import { PublicKey, SystemProgram } from '@solana/web3.js';
 import type { Connection } from '@solana/web3.js';
 import type { AnchorWallet } from '@solana/wallet-adapter-react';
 
@@ -39,6 +39,7 @@ export async function createFlightPolicyOnChain(
   input: CreateFlightPolicyInput,
 ): Promise<CreateFlightPolicyResult> {
   const program = getEscrowProgram(connection, wallet);
+  await assertProgramDeployed(connection, program.programId);
   const policyId = randomPolicyId();
   const policy = policyPda(program.programId, policyId);
   const escrow = escrowPda(program.programId, policyId);
@@ -88,4 +89,12 @@ export async function createFlightPolicyOnChain(
       depositPremium: sig3,
     },
   };
+}
+
+async function assertProgramDeployed(connection: Connection, programId: PublicKey) {
+  const info = await connection.getAccountInfo(programId);
+  if (info) return;
+  throw new Error(
+    `Escrow program ${programId.toBase58()} is not on ${connection.rpcEndpoint}. After solana-test-validator --reset, run make deploy-local. Phantom/Solflare must use Localhost (http://127.0.0.1:8899), not Devnet.`,
+  );
 }
