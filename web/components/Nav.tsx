@@ -18,7 +18,13 @@ export function Nav() {
         <Link
           key={link.href}
           href={link.href}
-          data-active={pathname === link.href ? 'true' : 'false'}
+          data-active={
+            link.href === '/'
+              ? pathname === '/'
+              : pathname === link.href || pathname.startsWith(`${link.href}/`)
+              ? 'true'
+              : 'false'
+          }
         >
           {link.label}
         </Link>

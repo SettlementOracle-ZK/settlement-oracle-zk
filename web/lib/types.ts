@@ -1,4 +1,5 @@
 export type SettlementStatus = 'PENDING' | 'TRIGGERED' | 'PAID' | 'FAILED';
+export type DeskStatus = SettlementStatus | 'ACTIVE';
 
 export interface PolicyIndex {
   policy_id: string;

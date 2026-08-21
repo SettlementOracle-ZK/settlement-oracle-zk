@@ -22,8 +22,8 @@ export default async function PoliciesPage() {
           <p className="kicker">On-chain escrow</p>
           <h1>Flight delay policies</h1>
           <p className="lede">
-            Parametric travel covers indexed for the desk. Escrow PDAs hold premium; this view never
-            moves funds.
+            Indexed covers only. Open a row for trigger vs live delay, escrow, and PDAs — this list
+            never moves funds.
           </p>
         </div>
         <div className="page-head-actions">
@@ -37,39 +37,35 @@ export default async function PoliciesPage() {
         {data.length === 0 ? (
           <p className="empty">
             No policies indexed.{' '}
-            <Link href="/policies/new">Register a flight cover on devnet</Link> or run{' '}
-            <code>make db-seed</code>.
+            <Link href="/policies/new">Register a flight cover</Link> or run <code>make db-seed</code>.
           </p>
         ) : (
-          <table>
+          <table className="policy-table">
             <thead>
               <tr>
-                <th>Holder</th>
-                <th>Class</th>
-                <th>Policy id</th>
-                <th>Policy PDA</th>
+                <th>Cover</th>
+                <th>Identity</th>
                 <th>Expiry</th>
-                <th>Escrow PDA</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {data.map((policy) => (
                 <tr key={policy.policy_id}>
                   <td>
-                    <HashChip value={policy.holder} size={4} />
+                    <span className="chip">{policy.asset_class.replaceAll('_', ' ')}</span>
                   </td>
                   <td>
-                    <span className="chip">{policy.asset_class}</span>
+                    <div className="id-stack">
+                      <HashChip label="Holder" value={policy.holder} size={4} />
+                      <HashChip label="Policy" value={`0x${policy.policy_id}`} size={4} />
+                    </div>
                   </td>
-                  <td>
-                    <HashChip value={`0x${policy.policy_id}`} />
-                  </td>
-                  <td>
-                    <HashChip value={policy.policy_pda} size={4} />
-                  </td>
-                  <td>{formatWhen(policy.expiry)}</td>
-                  <td>
-                    <HashChip value={policy.escrow_pda} size={4} />
+                  <td className="policy-expiry">{formatWhen(policy.expiry)}</td>
+                  <td className="policy-action">
+                    <Link className="btn-open" href={`/policies/${policy.policy_id}`}>
+                      Open
+                    </Link>
                   </td>
                 </tr>
               ))}
