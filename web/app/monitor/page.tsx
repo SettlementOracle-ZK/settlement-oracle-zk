@@ -6,7 +6,6 @@ import { AppShell } from '@/components/AppShell';
 import { ProofRail } from '@/components/ProofRail';
 import { getOracleLatest, getVerify } from '@/lib/api';
 import { DEMO_PROOF_HASH } from '@/lib/fixtures';
-import { formatUsd } from '@/lib/format';
 import type { OracleFeed, VerifyPayload } from '@/lib/types';
 
 function compare(price: number, threshold: number, operator: 'lt' | 'lte' | 'gt' | 'gte') {
@@ -31,8 +30,8 @@ function clampPct(value: number) {
 export default function MonitorPage() {
   const [feed, setFeed] = useState<OracleFeed | null>(null);
   const [source, setSource] = useState<'api' | 'fixture'>('fixture');
-  const [threshold, setThreshold] = useState(150);
-  const [operator, setOperator] = useState<'lt' | 'lte' | 'gt' | 'gte'>('lt');
+  const [threshold, setThreshold] = useState(120);
+  const [operator, setOperator] = useState<'lt' | 'lte' | 'gt' | 'gte'>('gte');
   const [proof, setProof] = useState<VerifyPayload | null>(null);
 
   useEffect(() => {
@@ -96,11 +95,11 @@ export default function MonitorPage() {
     <AppShell rail={<ProofRail proof={proof} fallbackHash={DEMO_PROOF_HASH} />}>
       <div className="page-head">
         <div>
-          <p className="kicker">Pyth SOL/USD</p>
+          <p className="kicker">Flight delay · oracle stand-in</p>
           <h1>Trigger monitor</h1>
           <p className="lede">
-            Spot versus strike. This desk does not submit payouts — stale or low-confidence prints
-            stay fail-closed.
+            Reported delay index versus your registered trigger (e.g. 2+ hours). MVP uses a Pyth
+            tick as devnet stand-in — stale or low-confidence feeds stay fail-closed.
           </p>
         </div>
         <p className="source-note">{source === 'api' ? 'Pyth via API' : 'Demo fixture'}</p>
@@ -109,7 +108,7 @@ export default function MonitorPage() {
       <div className="panel">
         <div className="controls">
           <label>
-            Strike (USD)
+            Delay trigger (min)
             <input
               type="number"
               value={threshold}
@@ -135,9 +134,11 @@ export default function MonitorPage() {
             <div className="strike-meta">
               <div>
                 <p className="source-note">{feed.symbol}</p>
-                <p className={`metric ${feed.stale ? '' : 'metric-live'}`}>{formatUsd(feed.price)}</p>
+                <p className={`metric ${feed.stale ? '' : 'metric-live'}`}>
+                  {feed.price.toFixed(0)} min
+                </p>
                 <p className="lede">
-                  Confidence ±{formatUsd(feed.conf)} · age {feed.age_seconds}s
+                  Confidence ±{feed.conf.toFixed(2)} · age {feed.age_seconds}s
                 </p>
               </div>
               <span className="fire-chip" data-hot={wouldTrigger}>
@@ -150,8 +151,8 @@ export default function MonitorPage() {
               <div className="strike-spot" style={{ left: `${pricePct}%` }} />
             </div>
             <div className="strike-legend">
-              <span>Spot {formatUsd(feed.price)}</span>
-              <span>Strike {formatUsd(threshold)}</span>
+              <span>Index {feed.price.toFixed(0)} min</span>
+              <span>Trigger {threshold} min</span>
             </div>
           </div>
         ) : (

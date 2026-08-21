@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 import { AppShell } from '@/components/AppShell';
 import { HashChip } from '@/components/HashChip';
 import { ProofRail } from '@/components/ProofRail';
@@ -18,17 +20,26 @@ export default async function PoliciesPage() {
       <div className="page-head">
         <div>
           <p className="kicker">On-chain escrow</p>
-          <h1>Active policies</h1>
+          <h1>Flight delay policies</h1>
           <p className="lede">
-            Parametric covers indexed for the desk. Escrow PDAs hold premium; this view never moves
-            funds.
+            Parametric travel covers indexed for the desk. Escrow PDAs hold premium; this view never
+            moves funds.
           </p>
         </div>
-        <p className="source-note">{source === 'api' ? 'API index' : 'Demo fixtures'}</p>
+        <div className="page-head-actions">
+          <Link className="btn-primary" href="/policies/new">
+            Register cover
+          </Link>
+          <p className="source-note">{source === 'api' ? 'API index' : 'Demo fixtures'}</p>
+        </div>
       </div>
       <div className="panel table-wrap">
         {data.length === 0 ? (
-          <p className="empty">No policies indexed. Run `make db-seed` or create a policy on-chain.</p>
+          <p className="empty">
+            No policies indexed.{' '}
+            <Link href="/policies/new">Register a flight cover on devnet</Link> or run{' '}
+            <code>make db-seed</code>.
+          </p>
         ) : (
           <table>
             <thead>
@@ -36,6 +47,7 @@ export default async function PoliciesPage() {
                 <th>Holder</th>
                 <th>Class</th>
                 <th>Policy id</th>
+                <th>Policy PDA</th>
                 <th>Expiry</th>
                 <th>Escrow PDA</th>
               </tr>
@@ -51,6 +63,9 @@ export default async function PoliciesPage() {
                   </td>
                   <td>
                     <HashChip value={`0x${policy.policy_id}`} />
+                  </td>
+                  <td>
+                    <HashChip value={policy.policy_pda} size={4} />
                   </td>
                   <td>{formatWhen(policy.expiry)}</td>
                   <td>

@@ -18,8 +18,9 @@ import { evaluateTrigger, PythHermesClient } from "../oracle-connector/src/index
 import { generateProof } from "../zk-prover/src/index.ts";
 
 const API_BASE = (process.env.API_PUBLIC_BASE_URL ?? "http://127.0.0.1:3000").replace(/\/$/, "");
-const THRESHOLD = Number(process.env.TRIGGER_THRESHOLD ?? "100");
-const ASSET_CLASS = process.env.ASSET_CLASS ?? "agriculture_climate";
+const THRESHOLD = Number(process.env.TRIGGER_THRESHOLD ?? "120");
+const ASSET_CLASS = process.env.ASSET_CLASS ?? "flight_delay";
+const TRIGGER_OPERATOR = (process.env.TRIGGER_OPERATOR ?? "gte") as "lt" | "lte" | "gt" | "gte";
 const POLICY_ID = (process.env.POLICY_ID ?? "aa".repeat(32)).replace(/^0x/, "");
 
 async function ensureApiUp(): Promise<void> {
@@ -68,7 +69,7 @@ async function main(): Promise<void> {
 
   const client = new PythHermesClient();
   const feed = await client.getLatestPriceFeed();
-  const trigger = evaluateTrigger(feed, { threshold: THRESHOLD, operator: "lt" });
+  const trigger = evaluateTrigger(feed, { threshold: THRESHOLD, operator: TRIGGER_OPERATOR });
 
   console.log("oracle", {
     price: feed.price,
@@ -84,7 +85,7 @@ async function main(): Promise<void> {
     oracleConf: feed.conf,
     publishTime: feed.publishTime,
     threshold: THRESHOLD,
-    operator: "lt",
+    operator: TRIGGER_OPERATOR,
     assetClass: ASSET_CLASS,
     verificationBaseUrl: API_BASE,
   });
@@ -105,7 +106,9 @@ async function main(): Promise<void> {
     "/settlements/register",
     {
       policy_id: POLICY_ID,
-      status: trigger.triggered ? "TRIGGERED" : "PENDING",
+      status:
+        process.env.SETTLEMENT_STATUS ??
+        (trigger.triggered ? "TRIGGERED" : "PENDING"),
       proof_hash: proof.proof_hash,
       holder: process.env.POLICY_HOLDER ?? "FlowDemoHolder111111111111111111111111",
       asset_class: ASSET_CLASS,

@@ -18,8 +18,8 @@ use {
 };
 
 const POLICY_ID: [u8; 32] = [2u8; 32];
-const ASSET_CLASS: [u8; 32] = *b"agriculture_climate\0\0\0\0\0\0\0\0\0\0\0\0\0";
-const TRIGGER_THRESHOLD: i64 = 100_000_000_000;
+const ASSET_CLASS: [u8; 32] = *b"flight_delay\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+const TRIGGER_THRESHOLD: i64 = 120; // minutes (2h delay trigger)
 const DEPOSIT_LAMPORTS: u64 = 500_000_000;
 const POLICY_EXPIRY: i64 = 4_102_444_800;
 const HOLDER_AIRDROP: u64 = 1_000_000;
@@ -219,7 +219,7 @@ fn test_evaluate_trigger_happy_path_then_payout() {
     set_clock(&mut svm, now);
 
     let (policy, escrow) = fund_policy_and_escrow(&mut svm, &payer, &program_id, &holder.pubkey());
-    let price_feed = install_mock_pyth_feed(&mut svm, 50_000_000_000, 1_000_000, now);
+    let price_feed = install_mock_pyth_feed(&mut svm, 150, 1, now);
 
     send_ix(
         &mut svm,
@@ -257,7 +257,7 @@ fn test_evaluate_trigger_stale_oracle_blocks_trigger_and_payout() {
 
     let (policy, escrow) = fund_policy_and_escrow(&mut svm, &payer, &program_id, &holder.pubkey());
     let stale_time = now - 120;
-    let price_feed = install_mock_pyth_feed(&mut svm, 50_000_000_000, 1_000_000, stale_time);
+    let price_feed = install_mock_pyth_feed(&mut svm, 150, 1, stale_time);
 
     send_ix_expect_err(
         &mut svm,
@@ -289,7 +289,7 @@ fn test_evaluate_trigger_low_confidence_fails() {
     set_clock(&mut svm, now);
 
     let (policy, escrow) = fund_policy_and_escrow(&mut svm, &payer, &program_id, &holder.pubkey());
-    let price_feed = install_mock_pyth_feed(&mut svm, 50_000_000_000, 10_000_000_000, now);
+    let price_feed = install_mock_pyth_feed(&mut svm, 150, 10, now);
 
     send_ix_expect_err(
         &mut svm,
@@ -315,7 +315,7 @@ fn test_evaluate_trigger_condition_not_met() {
     set_clock(&mut svm, now);
 
     let (policy, escrow) = fund_policy_and_escrow(&mut svm, &payer, &program_id, &holder.pubkey());
-    let price_feed = install_mock_pyth_feed(&mut svm, 150_000_000_000, 1_000_000, now);
+    let price_feed = install_mock_pyth_feed(&mut svm, 90, 1, now);
 
     send_ix_expect_err(
         &mut svm,
@@ -341,7 +341,7 @@ fn test_evaluate_trigger_respects_pause() {
     set_clock(&mut svm, now);
 
     let (policy, escrow) = fund_policy_and_escrow(&mut svm, &payer, &program_id, &holder.pubkey());
-    let price_feed = install_mock_pyth_feed(&mut svm, 50_000_000_000, 1_000_000, now);
+    let price_feed = install_mock_pyth_feed(&mut svm, 150, 1, now);
 
     send_ix(
         &mut svm,

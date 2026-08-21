@@ -7,7 +7,7 @@ VALUES (
     decode('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'hex'),
     'DemoHolder111111111111111111111111111111111',
     '2099-12-31T00:00:00Z',
-    'agriculture_climate',
+    'flight_delay',
     'Policy1111111111111111111111111111111111111',
     'Escrow1111111111111111111111111111111111111'
 )
@@ -23,12 +23,12 @@ INSERT INTO proofs (
     public_inputs
 ) VALUES (
     '0xabc123def4567890abc123def4567890abc123def4567890abc123def4567890',
-    'agriculture_climate',
+    'flight_delay',
     85.4,
     '0-100',
     '92%',
     '2026-05-19T14:42:00Z',
-    '{"triggered": true, "threshold": 100, "oracle_price": 87.2, "operator": "lt"}'::jsonb
+    '{"triggered": true, "threshold": 120, "oracle_price": 150, "operator": "gte", "flight_number": "LA456", "route": "GRU-MIA"}'::jsonb
 )
 ON CONFLICT (proof_hash) DO NOTHING;
 

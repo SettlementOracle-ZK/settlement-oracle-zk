@@ -48,8 +48,9 @@ pub fn handle_evaluate_trigger(ctx: Context<EvaluateTrigger>) -> Result<()> {
         clock.unix_timestamp,
     )?;
 
+    // MVP flight-delay stand-in: oracle i64 = reported delay in minutes.
     require!(
-        price.price < ctx.accounts.escrow.trigger_threshold,
+        price.price >= ctx.accounts.escrow.trigger_threshold,
         ErrorCode::TriggerNotMet
     );
 

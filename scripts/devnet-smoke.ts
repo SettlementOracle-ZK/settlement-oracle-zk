@@ -35,12 +35,12 @@ const DEFAULT_PYTH_FEED = "7UVimffxr9ow1uXYxsr4LHAcV58mLzhmwaeKvJ1pjLiE";
 const LOCAL_VALIDATOR_URL = "http://127.0.0.1:8899";
 const DEVNET_RPC_URL = "https://api.devnet.solana.com";
 
-const TRIGGER_THRESHOLD = new BN("100000000000");
+const TRIGGER_THRESHOLD = new BN(process.env.TRIGGER_THRESHOLD_MINUTES ?? "120");
 /** Default smoke deposit: 10_000 lamports (0.00001 SOL). Override with SMOKE_DEPOSIT_LAMPORTS. */
 const DEFAULT_DEPOSIT_LAMPORTS = 10_000;
 const POLICY_EXPIRY = new BN("4102444800");
 const ASSET_CLASS = Buffer.alloc(32);
-Buffer.from("agriculture_climate").copy(ASSET_CLASS);
+Buffer.from("flight_delay").copy(ASSET_CLASS);
 
 type EscrowIdl = Idl & { address?: string };
 
@@ -345,6 +345,18 @@ async function main(): Promise<void> {
   console.log("deposit spent (returned to holder)", formatSol(received));
   console.log("policy-id for scripts:", policyIdHex(policyId));
   console.log("last tx:", sig5);
+  console.log(
+    "DEMO_RESULT_JSON=" +
+      JSON.stringify({
+        policy_id: policyIdHex(policyId),
+        policy_pda: policy.toBase58(),
+        escrow_pda: escrow.toBase58(),
+        holder: holder.publicKey.toBase58(),
+        payout_tx: sig5,
+        payout_amount: depositLamports.toNumber(),
+        asset_class: "flight_delay",
+      }),
+  );
 }
 
 main().catch((err: unknown) => {

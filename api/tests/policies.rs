@@ -74,7 +74,7 @@ fn fixture_escrow_account(authority: Pubkey) -> Vec<u8> {
         policy_id: [1u8; 32],
         authority,
         amount: 500_000_000,
-        trigger_threshold: 100_000_000_000,
+        trigger_threshold: 120,
         status: EscrowStatus::Active,
         paused: false,
         bump: 255,

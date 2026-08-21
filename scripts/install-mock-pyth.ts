@@ -16,9 +16,9 @@ const ACCOUNT_SIZE = 3312;
 const AGG_OFFSET = 208;
 const TIMESTAMP_OFFSET = 96;
 
-/** SOL-like price 50.0 @ expo -8 (below on-chain threshold 100.0). */
-const DEFAULT_PRICE = 50_000_000_000n;
-const DEFAULT_CONF = 1_000_000n;
+/** Simulated flight delay in minutes (>= typical 120 min trigger). */
+const DEFAULT_DELAY_MINUTES = 150n;
+const DEFAULT_CONF = 1n;
 
 function writeI64(buf: Buffer, offset: number, value: bigint): void {
   buf.writeBigInt64LE(value, offset);
@@ -53,7 +53,7 @@ export function mockPythKeypair(): Keypair {
 
 export function writeValidatorAccountFixture(outPath: string, feed = mockPythKeypair()): string {
   const publishTime = Math.floor(Date.now() / 1000);
-  const data = buildLegacyPriceData(DEFAULT_PRICE, DEFAULT_CONF, publishTime);
+  const data = buildLegacyPriceData(DEFAULT_DELAY_MINUTES, DEFAULT_CONF, publishTime);
   const fixture = {
     pubkey: feed.publicKey.toBase58(),
     account: {

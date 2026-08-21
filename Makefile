@@ -1,6 +1,6 @@
 .PHONY: db-up db-migrate db-seed db-status db-reset db-down
 .PHONY: test-api test-escrow test-oracle test-zk test-all
-.PHONY: settlement-flow devnet-smoke deploy-local deploy-devnet devnet-oracle devnet-setup local-smoke
+.PHONY: settlement-flow devnet-smoke deploy-local deploy-devnet devnet-oracle devnet-setup local-smoke demo-settle
 
 LOCAL_VALIDATOR_URL ?= http://127.0.0.1:8899
 LOCAL_PROGRAM_ID := $(shell solana-keygen pubkey target/deploy/escrow-keypair.json 2>/dev/null)
@@ -48,9 +48,16 @@ settlement-flow:
 	npm install --prefix zk-prover
 	npm run settlement-flow --prefix scripts
 
+demo-settle:
+	npm install --prefix scripts
+	npm install --prefix oracle-connector
+	npm install --prefix zk-prover
+	npm run demo-settle --prefix scripts
+
 deploy-local:
 	@test -f target/deploy/escrow-keypair.json || (echo "Missing target/deploy/escrow-keypair.json — run anchor build first." && exit 1)
 	export CARGO_TARGET_DIR=$$PWD/target && \
+		rm -f target/sbpf-solana-solana/release/escrow.so && \
 		PATH="$$HOME/.cargo/bin:$$PATH" cargo-build-sbf --manifest-path programs/escrow/Cargo.toml --arch v0
 	cp target/sbpf-solana-solana/release/escrow.so target/deploy/escrow.so
 	solana program deploy target/deploy/escrow.so \
@@ -61,8 +68,11 @@ deploy-devnet:
 	@test -f target/deploy/escrow-keypair.json || (echo "Missing target/deploy/escrow-keypair.json — run anchor build first." && exit 1)
 	@echo "WARNING: devnet deploy costs ~1+ SOL. Run once; avoid redeploy unless the program changed."
 	export CARGO_TARGET_DIR=$$PWD/target && \
+		rm -f target/sbpf-solana-solana/release/escrow.so && \
 		PATH="$$HOME/.cargo/bin:$$PATH" cargo-build-sbf --manifest-path programs/escrow/Cargo.toml --arch v0
+	@test -f target/sbpf-solana-solana/release/escrow.so || (echo "cargo-build-sbf did not produce escrow.so — check Solana/Anchor toolchain." && exit 1)
 	cp target/sbpf-solana-solana/release/escrow.so target/deploy/escrow.so
+	@echo "Built $$(wc -c < target/deploy/escrow.so | tr -d ' ') byte escrow.so"
 	solana program deploy target/deploy/escrow.so \
 		--program-id target/deploy/escrow-keypair.json \
 		--url $(DEVNET_RPC_URL) \
