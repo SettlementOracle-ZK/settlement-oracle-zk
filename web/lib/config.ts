@@ -3,7 +3,7 @@ export const API_BASE =
 
 export const ESCROW_PROGRAM_ID =
   process.env.NEXT_PUBLIC_ESCROW_PROGRAM_ID ??
-  '987M3ZdtXNuZu7jfA1TtTHNgYThNHEYyGVP5sq42j1Rd';
+  'DqdgQv57RWZ4RVUQ7v6SMvTfA11gFph2TNKZDz7sa3Ap';
 
 export const SOLANA_RPC =
   process.env.NEXT_PUBLIC_SOLANA_RPC_URL ?? 'https://api.devnet.solana.com';

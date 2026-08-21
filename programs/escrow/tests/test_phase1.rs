@@ -14,7 +14,7 @@ use {
 
 const POLICY_ID: [u8; 32] = [1u8; 32];
 const ASSET_CLASS: [u8; 32] = *b"agriculture_climate\0\0\0\0\0\0\0\0\0\0\0\0\0";
-const TRIGGER_THRESHOLD: i64 = 100_000_000_000; // $100 with expo -8
+const TRIGGER_THRESHOLD: i64 = 120; // delay minutes (2h)
 const DEPOSIT_LAMPORTS: u64 = 500_000_000;
 const POLICY_EXPIRY: i64 = 4_102_444_800; // 2099-12-31
 

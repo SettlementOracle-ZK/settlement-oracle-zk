@@ -16,8 +16,8 @@ export class ApiUnavailableError extends Error {
   }
 }
 
-async function fetchJson<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, { cache: 'no-store' });
+async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`${API_BASE}${path}`, { cache: 'no-store', ...init });
   if (!response.ok) {
     const body = await response.text();
     throw new ApiUnavailableError(`${response.status} ${path}: ${body}`);
@@ -70,6 +70,24 @@ export async function getVerify(proofHash: string): Promise<VerifyPayload | null
 
 export function verifyHref(proofHash: string): string {
   return `${API_BASE}/verify/${proofHash}`;
+}
+
+export type RegisterPolicyBody = {
+  policy_id: string;
+  holder: string;
+  expiry: string;
+  asset_class: string;
+  policy_pda: string;
+  escrow_pda: string;
+  init_policy_tx?: string;
+};
+
+export async function registerPolicy(body: RegisterPolicyBody): Promise<PolicyIndex> {
+  return fetchJson<PolicyIndex>('/policies/register', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
 }
 
 export async function getOracleLatest(): Promise<{

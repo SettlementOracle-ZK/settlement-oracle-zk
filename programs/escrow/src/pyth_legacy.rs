@@ -72,7 +72,7 @@ pub fn parse_validated_price(
     })
 }
 
-/// Fill a compact legacy header for devnet/local smoke (price below default trigger threshold).
+/// Fill a compact legacy header for devnet/local smoke (delay minutes stand-in).
 pub fn write_mock_legacy_price(data: &mut [u8], price: i64, conf: u64, publish_time: i64) -> Result<()> {
     require!(data.len() >= MOCK_ACCOUNT_SIZE, ErrorCode::Unauthorized);
     data.fill(0);

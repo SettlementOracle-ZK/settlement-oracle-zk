@@ -9,17 +9,17 @@ export const DEMO_POLICY_ID = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 export const FIXTURE_POLICIES: PolicyIndex[] = [
   {
     policy_id: DEMO_POLICY_ID,
-    holder: 'FarmCo · drought cover',
+    holder: 'AeJ6dvUWySX1HfsQ4bHHLL2xygpgDxBYmNyCgWaqjnJS',
     expiry: '2099-12-31T00:00:00Z',
-    asset_class: 'agriculture_climate',
+    asset_class: 'flight_delay',
     policy_pda: 'Policy1111111111111111111111111111111111111',
     escrow_pda: 'Escrow1111111111111111111111111111111111111',
   },
   {
     policy_id: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
-    holder: 'Coastal grain desk',
+    holder: '2KyMxgsf29vr8pjyCfvwcaNeeM4HWzz9s7mJTdYeBEXP',
     expiry: '2027-06-01T00:00:00Z',
-    asset_class: 'agriculture_climate',
+    asset_class: 'flight_delay',
     policy_pda: 'Policy2222222222222222222222222222222222222',
     escrow_pda: 'Escrow2222222222222222222222222222222222222',
   },
@@ -50,7 +50,7 @@ export const FIXTURE_SETTLEMENTS: SettlementIndex[] = [
 
 export const FIXTURE_VERIFY: Record<string, VerifyPayload> = {
   [DEMO_PROOF_HASH]: {
-    asset_class: 'agriculture_climate',
+    asset_class: 'flight_delay',
     risk_score: 85.4,
     scale: '0-100',
     model_confidence: '92%',
@@ -64,16 +64,18 @@ export const FIXTURE_VERIFY: Record<string, VerifyPayload> = {
     verification_method: 'fixture',
     public_inputs: {
       triggered: true,
-      threshold: 100,
-      oracle_price: 87.2,
-      operator: 'lt',
+      threshold: 120,
+      oracle_price: 150,
+      operator: 'gte',
+      flight_number: 'LA456',
+      route: 'GRU-MIA',
     },
   },
 };
 
 export const FIXTURE_ORACLE: OracleFeed = {
   feed_id: '0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d',
-  symbol: 'SOL/USD',
+  symbol: 'Delay index (demo)',
   price: 142.35,
   conf: 0.18,
   expo: -8,

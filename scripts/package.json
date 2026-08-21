@@ -7,6 +7,8 @@
     "evaluate-trigger": "tsx submit-evaluate-trigger.ts",
     "devnet-smoke": "tsx devnet-smoke.ts",
     "bootstrap-devnet-oracle": "tsx bootstrap-devnet-oracle.ts",
+    "execute-payout": "tsx execute-payout.ts",
+    "demo-settle": "tsx demo-settle.ts",
     "settlement-flow": "tsx run-settlement-flow.ts"
   },
   "dependencies": {

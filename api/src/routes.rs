@@ -148,6 +148,18 @@ pub struct RegisterSettlementRequest {
     pub escrow_pda: Option<String>,
 }
 
+#[derive(Deserialize)]
+pub struct RegisterPolicyRequest {
+    pub policy_id: String,
+    pub holder: String,
+    pub expiry: String,
+    pub asset_class: String,
+    pub policy_pda: String,
+    pub escrow_pda: String,
+    /// Optional devnet tx signatures for audit trail (not stored in MVP schema).
+    pub init_policy_tx: Option<String>,
+}
+
 #[derive(Serialize)]
 pub struct RegisterProofResponse {
     pub proof_hash: String,
@@ -179,6 +191,7 @@ pub fn router(state: AppState) -> Router {
     Router::new()
         .route("/health", get(health))
         .route("/policies", get(list_policies))
+        .route("/policies/register", post(register_policy))
         .route("/policies/{id}", get(get_policy))
         .route("/settlements", get(list_settlements))
         .route("/settlements/{id}", get(get_settlement))
@@ -539,15 +552,26 @@ async fn register_settlement(
 
     let row = sqlx::query_as::<_, SettlementIndexDb>(
         r#"
-        INSERT INTO settlements (policy_id, status, payout_amount, tx_signature, proof_hash, settled_at)
-        VALUES ($1, $2, $3, $4, $5, CASE WHEN $2 = 'PAID' THEN now() ELSE NULL END)
-        RETURNING id::text AS id,
-                  encode(policy_id, 'hex') AS policy_id,
-                  status,
-                  payout_amount,
-                  tx_signature,
-                  proof_hash,
-                  settled_at
+        UPDATE settlements s
+        SET status = $2,
+            payout_amount = COALESCE($3, s.payout_amount),
+            tx_signature = COALESCE($4, s.tx_signature),
+            proof_hash = COALESCE($5, s.proof_hash),
+            settled_at = CASE WHEN $2 = 'PAID' THEN now() ELSE s.settled_at END
+        FROM (
+            SELECT id FROM settlements
+            WHERE policy_id = $1
+            ORDER BY created_at DESC
+            LIMIT 1
+        ) latest
+        WHERE s.id = latest.id
+        RETURNING s.id::text AS id,
+                  encode(s.policy_id, 'hex') AS policy_id,
+                  s.status,
+                  s.payout_amount,
+                  s.tx_signature,
+                  s.proof_hash,
+                  s.settled_at
         "#,
     )
     .bind(policy_id.as_slice())
@@ -555,8 +579,33 @@ async fn register_settlement(
     .bind(body.payout_amount)
     .bind(&body.tx_signature)
     .bind(&body.proof_hash)
-    .fetch_one(&state.pool)
+    .fetch_optional(&state.pool)
     .await?;
+
+    let row = if let Some(row) = row {
+        row
+    } else {
+        sqlx::query_as::<_, SettlementIndexDb>(
+            r#"
+            INSERT INTO settlements (policy_id, status, payout_amount, tx_signature, proof_hash, settled_at)
+            VALUES ($1, $2, $3, $4, $5, CASE WHEN $2 = 'PAID' THEN now() ELSE NULL END)
+            RETURNING id::text AS id,
+                      encode(policy_id, 'hex') AS policy_id,
+                      status,
+                      payout_amount,
+                      tx_signature,
+                      proof_hash,
+                      settled_at
+            "#,
+        )
+        .bind(policy_id.as_slice())
+        .bind(&body.status)
+        .bind(body.payout_amount)
+        .bind(&body.tx_signature)
+        .bind(&body.proof_hash)
+        .fetch_one(&state.pool)
+        .await?
+    };
 
     let verification_url = row
         .proof_hash
@@ -594,6 +643,50 @@ async fn get_verify(
     .ok_or(ApiError::ProofNotFound)?;
 
     Ok(Json(verify_response_from_proof(row, &state.public_base_url)))
+}
+
+async fn register_policy(
+    State(state): State<AppState>,
+    Json(body): Json<RegisterPolicyRequest>,
+) -> Result<Json<PolicyIndexRow>, ApiError> {
+    if !state.is_development() {
+        return Err(ApiError::DevOnly);
+    }
+
+    let policy_id = parse_policy_id(&body.policy_id)?;
+    let expiry = chrono::DateTime::parse_from_rfc3339(&body.expiry)
+        .map_err(|_| ApiError::InvalidPolicyId)?
+        .with_timezone(&Utc);
+
+    sqlx::query(
+        r#"
+        INSERT INTO policies (policy_id, holder, expiry, asset_class, policy_pda, escrow_pda)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        ON CONFLICT (policy_id) DO UPDATE SET
+            holder = EXCLUDED.holder,
+            expiry = EXCLUDED.expiry,
+            asset_class = EXCLUDED.asset_class,
+            policy_pda = EXCLUDED.policy_pda,
+            escrow_pda = EXCLUDED.escrow_pda
+        "#,
+    )
+    .bind(policy_id.as_slice())
+    .bind(&body.holder)
+    .bind(expiry)
+    .bind(&body.asset_class)
+    .bind(&body.policy_pda)
+    .bind(&body.escrow_pda)
+    .execute(&state.pool)
+    .await?;
+
+    Ok(Json(PolicyIndexRow {
+        policy_id: body.policy_id.strip_prefix("0x").unwrap_or(&body.policy_id).to_string(),
+        holder: body.holder,
+        expiry: rfc3339(expiry),
+        asset_class: body.asset_class,
+        policy_pda: body.policy_pda,
+        escrow_pda: body.escrow_pda,
+    }))
 }
 
 async fn get_oracle_latest(

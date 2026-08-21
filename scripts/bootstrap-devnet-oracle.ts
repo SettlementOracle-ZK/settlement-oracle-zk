@@ -4,7 +4,7 @@
  * Usage:
  *   npm run bootstrap-devnet-oracle --prefix scripts
  *
- * Env: SOLANA_RPC_URL, ANCHOR_WALLET, ESCROW_PROGRAM_ID
+ * Env: SOLANA_RPC_URL, ANCHOR_WALLET, ESCROW_PROGRAM_ID, MOCK_DELAY_MINUTES (default 150)
  */
 
 import fs from "node:fs";

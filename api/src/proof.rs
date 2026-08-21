@@ -139,4 +139,28 @@ mod tests {
             "0xb5cd76ddda26d7044fec24b6cff89bbbe9186f497a5cb2e3abcc181a792253b7"
         );
     }
+
+    #[test]
+    fn hash_matches_flight_delay_gte_demo() {
+        let witness_json = serde_json::json!({
+            "asset_class": "flight_delay",
+            "feed_id": "0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d",
+            "operator": "gte",
+            "oracle_conf": 0.04038718,
+            "oracle_price": 91.90760282000001,
+            "publish_time": 1787324349_i64,
+            "risk_score": 77.0,
+            "threshold": 120.0,
+            "triggered": false
+        });
+        let witness = witness_from_public_inputs(&witness_json).expect("parse witness");
+        let json = canonical_witness_json(&witness);
+        eprintln!("rust json: {json}");
+        let hash = hash_witness(&witness);
+        eprintln!("rust hash: {hash}");
+        assert_eq!(
+            hash,
+            "0xbe7416dca32ac79832defb9328e7745a9bcfb931180e8d353b85da1e5356647c"
+        );
+    }
 }

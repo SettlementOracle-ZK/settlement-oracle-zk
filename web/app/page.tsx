@@ -22,11 +22,11 @@ export default async function HomePage() {
   return (
     <AppShell rail={<ProofRail proof={proof} fallbackHash={DEMO_PROOF_HASH} />}>
       <div className="hero">
-        <p className="kicker">Parametric settlement · Solana</p>
-        <h1>Vaults. Triggers. Proofs.</h1>
+        <p className="kicker">Parametric travel · Solana</p>
+        <h1>Flights. Delays. Proofs.</h1>
         <p className="lede">
-          Premiums stay in on-chain escrow. Pyth prints the strike. A ZK hash attests the rule ran
-          as agreed — no off-chain payouts.
+          Register a flight, escrow the premium on-chain, and let the oracle attest delay triggers.
+          A ZK hash proves the rule ran — automatic payout, no claim form.
         </p>
       </div>
 
@@ -51,18 +51,23 @@ export default async function HomePage() {
       </div>
 
       <div className="desk-grid">
+        <Link className="desk-card" href="/policies/new">
+          <small>01 · Register</small>
+          <h2>New cover</h2>
+          <p>Connect Phantom on devnet and create a real flight-delay policy — escrow + premium in one flow.</p>
+        </Link>
         <Link className="desk-card" href="/policies">
-          <small>01 · Escrow</small>
+          <small>02 · Escrow</small>
           <h2>Policies</h2>
-          <p>Active covers, holders, and vault PDAs. On-chain balances stay the source of truth.</p>
+          <p>Active flight covers, holders, and vault PDAs. On-chain balances stay the source of truth.</p>
         </Link>
         <Link className="desk-card" href="/monitor">
-          <small>02 · Oracle</small>
+          <small>03 · Oracle</small>
           <h2>Monitor</h2>
-          <p>Live SOL/USD vs strike. Stale or low-confidence feeds fail closed — no payout.</p>
+          <p>Delay index vs trigger. Stale or low-confidence feeds fail closed — no payout.</p>
         </Link>
         <Link className="desk-card" href="/explorer">
-          <small>03 · Attestation</small>
+          <small>04 · Attestation</small>
           <h2>Explorer</h2>
           <p>Tx signatures, proof hashes, and the /verify link auditors use to check the trigger.</p>
         </Link>

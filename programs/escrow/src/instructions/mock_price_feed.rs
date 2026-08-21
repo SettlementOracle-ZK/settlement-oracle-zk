@@ -7,9 +7,9 @@ use crate::{
     pyth_legacy::{write_mock_legacy_price, MOCK_ACCOUNT_SIZE},
 };
 
-/// Devnet/local helper: program-owned PDA with legacy Pyth layout (below trigger threshold).
-pub const MOCK_PRICE_DEFAULT: i64 = 50_000_000_000;
-pub const MOCK_CONF_DEFAULT: u64 = 1_000_000;
+/// Devnet/local helper: program-owned PDA with legacy Pyth layout (delay minutes stand-in).
+pub const MOCK_DELAY_DEFAULT: i64 = 150;
+pub const MOCK_CONF_DEFAULT: u64 = 1;
 
 #[derive(Accounts)]
 pub struct MockPriceFeedAccounts<'info> {
@@ -55,7 +55,7 @@ pub fn handle_init_mock_price_feed(ctx: Context<MockPriceFeedAccounts>) -> Resul
     }
 
     let now = Clock::get()?.unix_timestamp;
-    write_account_data(account, MOCK_PRICE_DEFAULT, MOCK_CONF_DEFAULT, now)
+    write_account_data(account, MOCK_DELAY_DEFAULT, MOCK_CONF_DEFAULT, now)
 }
 
 fn write_account_data(

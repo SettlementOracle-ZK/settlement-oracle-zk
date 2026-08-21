@@ -11,7 +11,7 @@ Anchor program for SettlementOracle ZK MVP — policy registration, escrow vault
 | `deposit_premium` | Rodrigo | Transfer lamports into escrow vault |
 | `pause` / `unpause` | Klisman | Authority-only circuit breaker (`escrow.paused`) |
 | `execute_payout` | Klisman | Permissionless crank: transfer premium to holder when `status == Triggered` and not paused |
-| `evaluate_trigger` | Rodrigo (2.1) | Read Pyth price feed on-chain; set `escrow.status = Triggered` when price < threshold; fail closed on stale / low-confidence / paused |
+| `evaluate_trigger` | Rodrigo (2.1) | Read oracle feed on-chain; set `Triggered` when **delay >= threshold** (minutes); fail closed on stale / low-confidence / paused |
 
 ## Accounts
 
@@ -30,7 +30,7 @@ Anchor program for SettlementOracle ZK MVP — policy registration, escrow vault
 - Instruction name: `evaluate_trigger`
 - Accounts: `authority` (signer / fee payer), `escrow` (mut PDA), `policy` (PDA), `price_feed` (Pyth legacy price account)
 - On success when the condition is met: `escrow.status = Triggered`
-- Trigger rule: aggregate `price < escrow.trigger_threshold` (same raw i64 units as Pyth)
+- Trigger rule: mock oracle reports **delay minutes**; payout when `delay >= escrow.trigger_threshold` (default 120 min)
 - Fail closed: `OracleStale` / `OracleLowConfidence` / `Paused` / `TriggerNotMet`
 - Must **not** transfer funds — payout stays in `execute_payout`
 

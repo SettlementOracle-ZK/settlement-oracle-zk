@@ -39,10 +39,12 @@ SOLANA_RPC_URL=https://api.devnet.solana.com make devnet-smoke
 
 Flow on devnet:
 
-1. Bootstrap mock oracle PDA (`init_mock_price_feed` or `refresh_mock_price_feed`)
-2. `initialize_policy` → `initialize_escrow` → `deposit_premium`
-3. `evaluate_trigger` (mock feed price 50 < threshold 100)
+1. Bootstrap mock oracle PDA (`init_mock_price_feed(delay_minutes)` — default **150 min**)
+2. `initialize_policy` → `initialize_escrow` (threshold **120 min**) → `deposit_premium`
+3. `evaluate_trigger` (mock delay 150 **>=** threshold 120)
 4. `execute_payout`
+
+Force payout: re-run smoke (mock writes **150 min** by default). Block trigger: create policy with 4h threshold in `/policies/new` while mock stays at 150 min.
 
 ## Why mock oracle on devnet?
 
@@ -57,7 +59,25 @@ make local-smoke-keep   # same, validator stays up
 
 ## Off-chain index
 
-After on-chain payout, register via `make settlement-flow` or `POST /settlements/register` with the smoke tx signature and proof hash.
+After on-chain payout, register via `make demo-settle`, `make settlement-flow`, or `POST /settlements/register` with the smoke tx signature and proof hash.
+
+## One-command demo (smoke + index)
+
+With API running (`APP_ENV=development`):
+
+```bash
+make demo-settle
+```
+
+Uses a **fresh** on-chain policy, then indexes TRIGGERED + PAID in Postgres for the dashboard.
+
+For a policy created in the browser:
+
+```bash
+POLICY_ID=<64-hex> make demo-settle
+```
+
+Only pass `POLICY_ID` — PDAs, holder and payout tx are resolved on-chain automatically.
 
 ## Verify
 
