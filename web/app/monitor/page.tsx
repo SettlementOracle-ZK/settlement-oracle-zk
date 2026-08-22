@@ -7,14 +7,14 @@ import { ProofRail } from '@/components/ProofRail';
 import { StrikeBoard } from '@/components/StrikeBoard';
 import { getVerify } from '@/lib/api';
 import { DEMO_PROOF_HASH } from '@/lib/fixtures';
-import { compareTrigger, oracleGateWarning, type TriggerOperator } from '@/lib/trigger';
-import { useOracleFeed } from '@/lib/useOracleFeed';
+import { compareTrigger, oracleGateWarning, ON_CHAIN_OPERATOR } from '@/lib/trigger';
+import { useDelayFeed } from '@/lib/useOracleFeed';
 import type { VerifyPayload } from '@/lib/types';
 
 export default function MonitorPage() {
-  const { feed, source } = useOracleFeed();
+  const { feed, source } = useDelayFeed();
   const [threshold, setThreshold] = useState(120);
-  const [operator, setOperator] = useState<TriggerOperator>('gte');
+  const operator = ON_CHAIN_OPERATOR;
   const [proof, setProof] = useState<VerifyPayload | null>(null);
 
   useEffect(() => {
@@ -37,11 +37,11 @@ export default function MonitorPage() {
           <p className="kicker">Flight delay · oracle stand-in</p>
           <h1>Trigger monitor</h1>
           <p className="lede">
-            Reported delay index versus your registered trigger (e.g. 2+ hours). MVP uses a Pyth
-            tick as devnet stand-in — stale or low-confidence feeds stay fail-closed.
+            Reported delay index versus your registered trigger (e.g. &gt; 2 hours). MVP uses the
+            program mock oracle on devnet — stale or low-confidence feeds stay fail-closed.
           </p>
         </div>
-        <p className="source-note">{source === 'api' ? 'Pyth via API' : 'Demo fixture'}</p>
+        <p className="source-note">{source === 'api' ? 'Mock delay via API' : 'Demo fixture'}</p>
       </div>
 
       <div className="panel">
@@ -54,18 +54,7 @@ export default function MonitorPage() {
               onChange={(event) => setThreshold(Number(event.target.value))}
             />
           </label>
-          <label>
-            Operator
-            <select
-              value={operator}
-              onChange={(event) => setOperator(event.target.value as TriggerOperator)}
-            >
-              <option value="lt">price &lt; strike</option>
-              <option value="lte">price ≤ strike</option>
-              <option value="gt">price &gt; strike</option>
-              <option value="gte">price ≥ strike</option>
-            </select>
-          </label>
+          <p className="source-note">Operator: delay &gt; trigger (on-chain rule)</p>
         </div>
 
         {feed ? (

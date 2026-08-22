@@ -112,10 +112,26 @@ export const FIXTURE_POLICY_DETAILS: Record<string, PolicyDetail> = {
 
 export const FIXTURE_ORACLE: OracleFeed = {
   feed_id: '0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d',
-  symbol: 'Delay index (demo)',
+  symbol: 'SOL/USD',
   price: 142.35,
   conf: 0.18,
   expo: -8,
+  publish_time: Math.floor(Date.now() / 1000) - 4,
+  timestamp: new Date().toISOString(),
+  age_seconds: 4,
+  stale: false,
+  low_confidence: false,
+  max_staleness_seconds: 60,
+  max_confidence_ratio: 0.05,
+};
+
+/** Mock on-chain delay feed stand-in (150 min — above 120 min trigger). */
+export const FIXTURE_DELAY_ORACLE: OracleFeed = {
+  feed_id: 'mock_pyth',
+  symbol: 'Delay',
+  price: 150,
+  conf: 1,
+  expo: 0,
   publish_time: Math.floor(Date.now() / 1000) - 4,
   timestamp: new Date().toISOString(),
   age_seconds: 4,

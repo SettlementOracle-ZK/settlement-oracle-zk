@@ -1,9 +1,11 @@
 //! Pyth Hermes reader for the Trigger Monitor. Fail closed on HTTP errors.
 
+use anchor_lang::prelude::Pubkey;
 use chrono::{SecondsFormat, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::error::ApiError;
+use crate::rpc::AccountSource;
 
 /// Matches `oracle-connector` defaults.
 pub const MAX_STALENESS_SECONDS: i64 = 60;
@@ -74,6 +76,7 @@ pub fn is_low_confidence(price: f64, conf: f64, max_ratio: f64) -> bool {
 
 pub fn feed_view(
     feed_id: String,
+    symbol: &'static str,
     price: f64,
     conf: f64,
     expo: i32,
@@ -86,7 +89,7 @@ pub fn feed_view(
         .to_rfc3339_opts(SecondsFormat::Secs, true);
     OracleFeedView {
         feed_id,
-        symbol: "SOL/USD",
+        symbol,
         price,
         conf,
         expo,
@@ -142,12 +145,61 @@ pub async fn fetch_latest_feed(
 
     Ok(feed_view(
         normalize_feed_id(&parsed.id),
+        "SOL/USD",
         price,
         conf,
         parsed.price.expo,
         parsed.price.publish_time,
         now_seconds,
     ))
+}
+
+fn delay_low_confidence(price: i64, conf: u64) -> bool {
+    if price == 0 {
+        return true;
+    }
+    let abs_price = price.unsigned_abs();
+    conf.saturating_mul(10_000) > abs_price.saturating_mul(escrow::constants::MAX_CONFIDENCE_BPS)
+}
+
+pub async fn fetch_delay_feed(
+    rpc: &dyn AccountSource,
+    feed_pubkey: &Pubkey,
+) -> Result<OracleFeedView, ApiError> {
+    let data = rpc
+        .get_account_data(feed_pubkey)
+        .await?
+        .ok_or_else(|| ApiError::Oracle("delay feed account missing".into()))?;
+
+    let now_seconds = Utc::now().timestamp();
+    let quote = escrow::pyth_legacy::parse_validated_price(
+        &data,
+        now_seconds,
+        escrow::constants::MAX_STALENESS_SECONDS,
+    )
+    .map_err(|_| ApiError::Oracle("invalid or stale delay feed".into()))?;
+
+    let price = quote.price as f64;
+    let conf = quote.conf as f64;
+    let publish_time = quote.publish_time;
+    let age_seconds = now_seconds.saturating_sub(publish_time);
+
+    Ok(OracleFeedView {
+        feed_id: feed_pubkey.to_string(),
+        symbol: "Delay",
+        price,
+        conf,
+        expo: 0,
+        publish_time,
+        timestamp: chrono::DateTime::from_timestamp(publish_time, 0)
+            .unwrap_or_else(Utc::now)
+            .to_rfc3339_opts(SecondsFormat::Secs, true),
+        age_seconds,
+        stale: is_stale(publish_time, now_seconds, MAX_STALENESS_SECONDS),
+        low_confidence: delay_low_confidence(quote.price, quote.conf),
+        max_staleness_seconds: MAX_STALENESS_SECONDS,
+        max_confidence_ratio: MAX_CONFIDENCE_RATIO,
+    })
 }
 
 #[cfg(test)]

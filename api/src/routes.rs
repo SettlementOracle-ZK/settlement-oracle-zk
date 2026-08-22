@@ -1,3 +1,4 @@
+use std::str::FromStr;
 use std::sync::Arc;
 
 use anchor_lang::prelude::Pubkey;
@@ -13,11 +14,11 @@ use tower_http::trace::TraceLayer;
 
 use crate::config::{DEFAULT_HERMES_URL, DEFAULT_PYTH_FEED_ID};
 use crate::error::ApiError;
-use crate::oracle::{fetch_latest_feed, OracleFeedView};
+use crate::oracle::{fetch_delay_feed, fetch_latest_feed, OracleFeedView};
 use crate::proof::{hash_witness, verify_stored_hash, witness_from_public_inputs};
 use crate::rpc::{
-    bytes32_to_string, decode_escrow, decode_policy, escrow_pda, policy_pda, status_label,
-    AccountSource,
+    bytes32_to_string, decode_escrow, decode_policy, escrow_pda, mock_pyth_pda, policy_pda,
+    status_label, AccountSource,
 };
 
 #[derive(Clone)]
@@ -199,6 +200,7 @@ pub fn router(state: AppState) -> Router {
         .route("/settlements/register", post(register_settlement))
         .route("/verify/{proof_hash}", get(get_verify))
         .route("/oracle/latest", get(get_oracle_latest))
+        .route("/oracle/delay", get(get_oracle_delay))
         .layer(TraceLayer::new_for_http())
         .with_state(state)
 }
@@ -274,13 +276,75 @@ fn verify_response_from_proof(row: ProofDb, base_url: &str) -> VerifyResponse {
     }
 }
 
+fn parse_pubkey(raw: &str) -> Result<Pubkey, ApiError> {
+    Pubkey::from_str(raw.trim()).map_err(|_| ApiError::InvalidPolicyId)
+}
+
+async fn indexed_policy_pdas(
+    pool: &PgPool,
+    policy_id: &[u8; 32],
+) -> Result<Option<(Pubkey, Pubkey)>, ApiError> {
+    let row = sqlx::query_as::<_, PolicyIndexDb>(
+        r#"
+        SELECT encode(policy_id, 'hex') AS policy_id,
+               holder,
+               expiry,
+               asset_class,
+               policy_pda,
+               escrow_pda
+        FROM policies
+        WHERE policy_id = $1
+        "#,
+    )
+    .bind(policy_id.as_slice())
+    .fetch_optional(pool)
+    .await?;
+
+    let Some(row) = row else {
+        return Ok(None);
+    };
+
+    Ok(Some((
+        parse_pubkey(&row.policy_pda)?,
+        parse_pubkey(&row.escrow_pda)?,
+    )))
+}
+
+async fn resolve_policy_pdas(
+    state: &AppState,
+    policy_id: &[u8; 32],
+) -> Result<(Pubkey, Pubkey), ApiError> {
+    let derived_policy = policy_pda(&state.program_id, policy_id);
+    let derived_escrow = escrow_pda(&state.program_id, policy_id);
+
+    let derived_policy_data = state.rpc.get_account_data(&derived_policy).await?;
+    let derived_escrow_data = state.rpc.get_account_data(&derived_escrow).await?;
+
+    if derived_policy_data.is_some() && derived_escrow_data.is_some() {
+        return Ok((derived_policy, derived_escrow));
+    }
+
+    if let Some((indexed_policy, indexed_escrow)) =
+        indexed_policy_pdas(&state.pool, policy_id).await?
+    {
+        if indexed_policy != derived_policy || indexed_escrow != derived_escrow {
+            let indexed_policy_data = state.rpc.get_account_data(&indexed_policy).await?;
+            let indexed_escrow_data = state.rpc.get_account_data(&indexed_escrow).await?;
+            if indexed_policy_data.is_some() && indexed_escrow_data.is_some() {
+                return Ok((indexed_policy, indexed_escrow));
+            }
+        }
+    }
+
+    Err(ApiError::PolicyNotFound)
+}
+
 async fn get_policy(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> Result<Json<PolicyResponse>, ApiError> {
     let policy_id = parse_policy_id(&id)?;
-    let policy_addr = policy_pda(&state.program_id, &policy_id);
-    let escrow_addr = escrow_pda(&state.program_id, &policy_id);
+    let (policy_addr, escrow_addr) = resolve_policy_pdas(&state, &policy_id).await?;
 
     let policy_data = state
         .rpc
@@ -693,6 +757,14 @@ async fn get_oracle_latest(
     State(state): State<AppState>,
 ) -> Result<Json<OracleFeedView>, ApiError> {
     let feed = fetch_latest_feed(&state.http, &state.hermes_url, &state.pyth_feed_id).await?;
+    Ok(Json(feed))
+}
+
+async fn get_oracle_delay(
+    State(state): State<AppState>,
+) -> Result<Json<OracleFeedView>, ApiError> {
+    let feed_pubkey = mock_pyth_pda(&state.program_id);
+    let feed = fetch_delay_feed(state.rpc.as_ref(), &feed_pubkey).await?;
     Ok(Json(feed))
 }
 

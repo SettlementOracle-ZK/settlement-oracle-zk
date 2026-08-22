@@ -3,7 +3,7 @@ import type { OracleFeed } from './types';
 export type TriggerOperator = 'lt' | 'lte' | 'gt' | 'gte';
 
 /** On-chain `evaluate_trigger` for the MVP delay stand-in. */
-export const ON_CHAIN_OPERATOR: TriggerOperator = 'gte';
+export const ON_CHAIN_OPERATOR: TriggerOperator = 'gt';
 
 export function compareTrigger(
   price: number,

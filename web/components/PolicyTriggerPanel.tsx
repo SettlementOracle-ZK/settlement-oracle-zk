@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { OracleSparkline, type SparkSample } from '@/components/OracleSparkline';
 import { StrikeBoard } from '@/components/StrikeBoard';
-import { compareTrigger, failClosed, oracleGateWarning } from '@/lib/trigger';
-import { useOracleFeed } from '@/lib/useOracleFeed';
+import { compareTrigger, failClosed, oracleGateWarning, ON_CHAIN_OPERATOR } from '@/lib/trigger';
+import { useDelayFeed } from '@/lib/useOracleFeed';
 
 const MAX_SAMPLES = 40;
 
@@ -34,7 +34,7 @@ export function PolicyTriggerPanel({
   paused: boolean;
   status: string;
 }) {
-  const { feed, source } = useOracleFeed();
+  const { feed, source } = useDelayFeed();
   const [samples, setSamples] = useState<SparkSample[]>([]);
 
   useEffect(() => {
@@ -45,7 +45,7 @@ export function PolicyTriggerPanel({
     });
   }, [feed]);
 
-  const meetsRule = feed ? compareTrigger(feed.price, threshold) : false;
+  const meetsRule = feed ? compareTrigger(feed.price, threshold, ON_CHAIN_OPERATOR) : false;
   const gated = failClosed(feed);
   const hot = meetsRule && !paused && !gated;
   const warning = useMemo(() => oracleGateWarning(feed), [feed]);
@@ -55,8 +55,8 @@ export function PolicyTriggerPanel({
   return (
     <div className="panel">
       <div className="panel-kicker">
-        <p className="source-note">Live vs this policy · delay ≥ {threshold} min</p>
-        <p className="source-note">{source === 'api' ? 'Pyth via API' : 'Demo fixture'}</p>
+        <p className="source-note">Live vs this policy · delay &gt; {threshold} min</p>
+        <p className="source-note">{source === 'api' ? 'Mock delay oracle via API' : 'Demo fixture'}</p>
       </div>
       {feed ? (
         <>

@@ -2,6 +2,7 @@ import { API_BASE, USE_FIXTURES } from './config';
 import { canonicalPolicyId } from './format';
 import type { OracleFeed, PolicyDetail, PolicyIndex, SettlementIndex, VerifyPayload } from './types';
 import {
+  FIXTURE_DELAY_ORACLE,
   FIXTURE_ORACLE,
   FIXTURE_POLICIES,
   FIXTURE_POLICY_DETAILS,
@@ -123,5 +124,18 @@ export async function getOracleLatest(): Promise<{
   } catch {
     if (!USE_FIXTURES) return { data: null, source: 'api' };
     return { data: FIXTURE_ORACLE, source: 'fixture' };
+  }
+}
+
+export async function getOracleDelay(): Promise<{
+  data: OracleFeed | null;
+  source: 'api' | 'fixture';
+}> {
+  try {
+    const data = await fetchJson<OracleFeed>('/oracle/delay');
+    return { data, source: 'api' };
+  } catch {
+    if (!USE_FIXTURES) return { data: null, source: 'api' };
+    return { data: FIXTURE_DELAY_ORACLE, source: 'fixture' };
   }
 }

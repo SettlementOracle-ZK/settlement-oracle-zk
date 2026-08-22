@@ -108,6 +108,10 @@ pub fn escrow_pda(program_id: &Pubkey, policy_id: &[u8; 32]) -> Pubkey {
     .0
 }
 
+pub fn mock_pyth_pda(program_id: &Pubkey) -> Pubkey {
+    Pubkey::find_program_address(&[escrow::constants::MOCK_PYTH_SEED], program_id).0
+}
+
 pub fn decode_policy(data: &[u8]) -> Result<PolicyAccount, ApiError> {
     let mut slice = data;
     PolicyAccount::try_deserialize(&mut slice).map_err(|_| ApiError::AccountDecode)

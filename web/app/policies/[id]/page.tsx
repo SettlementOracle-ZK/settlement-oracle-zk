@@ -86,7 +86,7 @@ export default async function PolicyDetailPage({
         </div>
         <div>
           <h3>Trigger</h3>
-          <p>delay ≥ {formatDelayMinutes(policy.escrow.trigger_threshold)}</p>
+          <p>delay &gt; {formatDelayMinutes(policy.escrow.trigger_threshold)}</p>
         </div>
         <div>
           <h3>Expiry</h3>
